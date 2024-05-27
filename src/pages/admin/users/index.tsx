@@ -18,10 +18,21 @@ import { FaHatWizard, FaUserGroup } from "react-icons/fa6";
 interface TableItemProps {
   username: string;
   fullName: string;
-  ext: number;
   role: string;
-  domain: ".pbx1.cloudtalk.ca";
+  domain: string;
   api: string;
+}
+
+interface InputRowProps {
+  userId?: string;
+  username: string;
+  firstName: string;
+  lastName: string;
+  fullName: string;
+  email?: string;
+  role: string;
+  domain: string;
+  api?: string;
 }
 
 const CustomersDashboard = () => {
@@ -30,27 +41,18 @@ const CustomersDashboard = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [roles, setRoles] = useState<Array<{ name: string; id: string }>>([]);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [inputRows, setInputRows] = useState([
+  const [inputRows, setInputRows] = useState<Array<InputRowProps>>([
     {
       username: "",
       firstName: "",
       lastName: "",
       fullName: "",
       email: "",
-      ext: "",
       role: "",
       domain: ".pbx1.cloudtalk.ca",
     },
   ]);
-  const [editUser, setEditUser] = useState<{
-    username: string;
-    firstName: string;
-    lastName: string;
-    ext: number;
-    role: string;
-    domain: ".pbx1.cloudtalk.ca";
-    api: string;
-  } | null>(null);
+  const [editUser, setEditUser] = useState<InputRowProps | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
   const sidebarMenus: Array<SidebarMenuItemProps> = [
@@ -65,6 +67,7 @@ const CustomersDashboard = () => {
     },
   ];
 
+  const [selectedItemIndex, setSelectedItemIndex] = useState(0);
   const [tableItems, setTableItems] = useState<Array<TableItemProps>>([]);
 
   const onAddUser = (newUser: TableItemProps) => {
@@ -79,6 +82,7 @@ const CustomersDashboard = () => {
       firstName,
       lastName,
     });
+    setSelectedItemIndex(index);
     setIsEditModalOpen(true);
   };
 
@@ -87,26 +91,50 @@ const CustomersDashboard = () => {
     setTableItems(updatedUsers);
   };
 
-  const handleAddUser = () => {
-    inputRows.forEach((row) => {
-      let newRole: any = roles.filter((item) => {
-        return item.id === row.role;
-      })[0];
+  const handleAddUser = async () => {
+    for (const row of inputRows) {
+      let newRole = roles.find((item) => item.id === row.role);
       if (!newRole && roles.length) {
         newRole = roles[0];
       }
-      const user: TableItemProps = {
+
+      const newUser: TableItemProps = {
         username: row.username,
         fullName: `${row.firstName} ${row.lastName}`,
-        ext: Math.floor(Math.random() * 900) + 100, // Random extension for example
-        role: newRole.name,
+        role: newRole?.name || "",
         domain: ".pbx1.cloudtalk.ca",
         api: "9d*******34",
       };
-      onAddUser(user);
-    });
+
+      try {
+        const response = await fetch(
+          `http://192.168.103.172:3000/api/admin/user_create`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              authorization: userData.token,
+            },
+            body: JSON.stringify(newUser),
+          }
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            onAddUser(newUser);
+          } else {
+            console.error("Failed to create user:", data.message);
+          }
+        } else {
+          console.error("Failed to create user:", response.statusText);
+        }
+      } catch (error) {
+        console.error("Error creating user:", error);
+      }
+    }
+
     setIsModalOpen(false);
-    console.log(roles[0]);
     setInputRows([
       {
         username: "",
@@ -114,7 +142,6 @@ const CustomersDashboard = () => {
         lastName: "",
         fullName: "",
         email: "",
-        ext: "",
         role: roles[0].id,
         domain: ".pbx1.cloudtalk.ca",
       },
@@ -132,13 +159,12 @@ const CustomersDashboard = () => {
       const updatedUser: TableItemProps = {
         username: editUser.username,
         fullName: `${editUser.firstName} ${editUser.lastName}`,
-        ext: editUser.ext,
-        role: newRole.name,
+        role: newRole?.name || "",
         domain: editUser.domain,
-        api: editUser.api,
+        api: editUser.api as string,
       };
-      const updatedUsers = tableItems.map((user) =>
-        user.ext === editUser.ext ? updatedUser : user
+      const updatedUsers = tableItems.map((user, i) =>
+        selectedItemIndex === i ? updatedUser : user
       );
       setTableItems(updatedUsers);
       setInputRows([
@@ -148,7 +174,6 @@ const CustomersDashboard = () => {
           lastName: "",
           fullName: "",
           email: "",
-          ext: "",
           role: "",
           domain: ".pbx1.cloudtalk.ca",
         },
@@ -166,7 +191,6 @@ const CustomersDashboard = () => {
         lastName: "",
         fullName: "",
         email: "",
-        ext: "",
         role: "",
         domain: ".pbx1.cloudtalk.ca",
       },
@@ -177,10 +201,13 @@ const CustomersDashboard = () => {
     setInputRows(inputRows.filter((_, i) => i !== index));
   };
 
-  const updateInputRow = (index: number, field: string, value: string) => {
+  const updateInputRow = (
+    index: number,
+    field: string,
+    value: string | number
+  ) => {
     const rows = [...inputRows];
     rows[index] = { ...rows[index], [field]: value };
-    console.log(rows);
     setInputRows(rows);
   };
 
@@ -200,11 +227,38 @@ const CustomersDashboard = () => {
     }
 
     setRoles(roleItems);
-  }, []);
+  }, [userData.token]);
+
+  const fetchUserList = useCallback(async () => {
+    try {
+      const response = await fetch(`${base_url}/admin/user_list`, {
+        headers: {
+          authorization: userData.token,
+        },
+      });
+      if (response.ok) {
+        const data = await response.json();
+
+        const users: TableItemProps[] = data.data.users.map((user: any) => ({
+          username: user.username,
+          fullName: user.contact_name,
+          role: user.group_names,
+          domain: user.domain_name,
+          api: "",
+        }));
+        setTableItems(users);
+      } else {
+        console.error("Failed to fetch users:", response.statusText);
+      }
+    } catch (error) {
+      console.error("Error fetching users:", error);
+    }
+  }, [userData.token]);
 
   useEffect(() => {
     fetchRoleResponse();
-  }, []);
+    fetchUserList();
+  }, [fetchRoleResponse, fetchUserList]);
 
   return (
     <div className="w-full h-screen flex flex-col bg-white font-nunito">
@@ -242,7 +296,6 @@ const CustomersDashboard = () => {
                 headerItems={[
                   "User Name",
                   "Full Name",
-                  "Ext.",
                   "Role",
                   "Domain",
                   "API",
@@ -305,21 +358,6 @@ const CustomersDashboard = () => {
                             value={row.lastName}
                             onChange={(e) =>
                               updateInputRow(index, "lastName", e.target.value)
-                            }
-                          />
-                        </div>
-                        <div>
-                          {index === 0 && (
-                            <label className="block text-sm font-medium text-gray-700">
-                              Ext.
-                            </label>
-                          )}
-                          <input
-                            type="text"
-                            className="mt-1 p-2 border rounded-lg w-full"
-                            value={row.ext}
-                            onChange={(e) =>
-                              updateInputRow(index, "ext", e.target.value)
                             }
                           />
                         </div>
@@ -406,7 +444,6 @@ const CustomersDashboard = () => {
                             lastName: "",
                             fullName: "",
                             email: "",
-                            ext: "",
                             role: "",
                             domain: ".pbx1.cloudtalk.ca",
                           },
@@ -481,22 +518,6 @@ const CustomersDashboard = () => {
                               setEditUser({
                                 ...editUser,
                                 lastName: e.target.value,
-                              })
-                            }
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">
-                            Ext.
-                          </label>
-                          <input
-                            type="text"
-                            className="mt-1 p-2 border rounded-lg w-full"
-                            value={editUser.ext.toString()}
-                            onChange={(e) =>
-                              setEditUser({
-                                ...editUser,
-                                ext: parseInt(e.target.value),
                               })
                             }
                           />
