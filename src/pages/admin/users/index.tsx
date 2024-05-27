@@ -106,6 +106,7 @@ const CustomersDashboard = () => {
       onAddUser(user);
     });
     setIsModalOpen(false);
+    console.log(roles[0]);
     setInputRows([
       {
         username: "",
@@ -114,7 +115,7 @@ const CustomersDashboard = () => {
         fullName: "",
         email: "",
         ext: "",
-        role: "",
+        role: roles[0].id,
         domain: ".pbx1.cloudtalk.ca",
       },
     ]);
@@ -140,6 +141,18 @@ const CustomersDashboard = () => {
         user.ext === editUser.ext ? updatedUser : user
       );
       setTableItems(updatedUsers);
+      setInputRows([
+        {
+          username: "",
+          firstName: "",
+          lastName: "",
+          fullName: "",
+          email: "",
+          ext: "",
+          role: "",
+          domain: ".pbx1.cloudtalk.ca",
+        },
+      ]);
       setIsEditModalOpen(false);
     }
   };
@@ -167,6 +180,7 @@ const CustomersDashboard = () => {
   const updateInputRow = (index: number, field: string, value: string) => {
     const rows = [...inputRows];
     rows[index] = { ...rows[index], [field]: value };
+    console.log(rows);
     setInputRows(rows);
   };
 
@@ -332,7 +346,7 @@ const CustomersDashboard = () => {
                           )}
                           <select
                             className="mt-1 p-2 border rounded-lg w-full"
-                            defaultValue={roles.length ? roles[0].id : ""}
+                            value={row.role}
                             onChange={(e) =>
                               updateInputRow(index, "role", e.target.value)
                             }
@@ -384,7 +398,21 @@ const CustomersDashboard = () => {
                   <div className="flex justify-end p-4 border-t border-gray-200">
                     <button
                       className="px-4 py-2 mr-2 bg-gray-300 rounded-lg"
-                      onClick={() => setIsModalOpen(false)}
+                      onClick={() => {
+                        setInputRows([
+                          {
+                            username: "",
+                            firstName: "",
+                            lastName: "",
+                            fullName: "",
+                            email: "",
+                            ext: "",
+                            role: "",
+                            domain: ".pbx1.cloudtalk.ca",
+                          },
+                        ]);
+                        setIsModalOpen(false);
+                      }}
                     >
                       Cancel
                     </button>
