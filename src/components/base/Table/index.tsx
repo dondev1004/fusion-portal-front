@@ -23,7 +23,7 @@ const Table: React.FC<TableProps> = ({
 
   const filteredItems = tableItems.filter(
     (item) =>
-      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.ext.toString().includes(searchTerm) ||
       item.domain.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -48,7 +48,7 @@ const Table: React.FC<TableProps> = ({
                 {headerItems.map((headerItem, index) => (
                   <th
                     scope="col"
-                    className="w-2/12 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                     key={index}
                   >
                     {headerItem}

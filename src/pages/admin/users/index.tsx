@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Sidebar, {
   SidebarMenuItemProps,
 } from "../../../components/advanced/layouts/Sidebar";
@@ -7,26 +7,50 @@ import Table from "../../../components/base/Table";
 import Footer from "../../../components/layouts/footer";
 import Header from "../../../components/layouts/header";
 
+import { base_url } from "../../../config/setting";
+
+import { useAppStore } from "../../../lib/zustand/store";
+
 import { AiOutlineSearch } from "react-icons/ai";
 import { BsCopy, BsPlusLg, BsTrash } from "react-icons/bs";
 import { FaHatWizard, FaUserGroup } from "react-icons/fa6";
 
 interface TableItemProps {
-  name: string;
-  email: string;
+  username: string;
+  fullName: string;
   ext: number;
-  role: "Admin" | "User";
+  role: string;
   domain: ".pbx1.cloudtalk.ca";
   api: string;
 }
 
 const CustomersDashboard = () => {
+  const { userData } = useAppStore();
+
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [roles, setRoles] = useState<Array<{ name: string; id: string }>>([]);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [inputRows, setInputRows] = useState([
-    { name: "", email: "", ext: "", role: "", domain: ".pbx1.cloudtalk.ca" },
+    {
+      username: "",
+      firstName: "",
+      lastName: "",
+      fullName: "",
+      email: "",
+      ext: "",
+      role: "",
+      domain: ".pbx1.cloudtalk.ca",
+    },
   ]);
-  const [editUser, setEditUser] = useState<TableItemProps | null>(null);
+  const [editUser, setEditUser] = useState<{
+    username: string;
+    firstName: string;
+    lastName: string;
+    ext: number;
+    role: string;
+    domain: ".pbx1.cloudtalk.ca";
+    api: string;
+  } | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
   const sidebarMenus: Array<SidebarMenuItemProps> = [
@@ -41,31 +65,20 @@ const CustomersDashboard = () => {
     },
   ];
 
-  const [tableItems, setTableItems] = useState<Array<TableItemProps>>([
-    {
-      name: "David Page",
-      email: "d@dkad.com",
-      ext: 184,
-      role: "Admin",
-      domain: ".pbx1.cloudtalk.ca",
-      api: "dk****************dk",
-    },
-    {
-      name: "Jane Doe",
-      email: "d@dkad.com",
-      ext: 101,
-      role: "User",
-      domain: ".pbx1.cloudtalk.ca",
-      api: "dk****************dk",
-    },
-  ]);
+  const [tableItems, setTableItems] = useState<Array<TableItemProps>>([]);
 
   const onAddUser = (newUser: TableItemProps) => {
     setTableItems((prevItems) => [...prevItems, newUser]);
   };
 
   const handleEditUser = (index: number) => {
-    setEditUser(tableItems[index]);
+    const user = tableItems[index];
+    const [firstName, lastName] = user.fullName.split(" ");
+    setEditUser({
+      ...user,
+      firstName,
+      lastName,
+    });
     setIsEditModalOpen(true);
   };
 
@@ -76,11 +89,17 @@ const CustomersDashboard = () => {
 
   const handleAddUser = () => {
     inputRows.forEach((row) => {
+      let newRole: any = roles.filter((item) => {
+        return item.id === row.role;
+      })[0];
+      if (!newRole && roles.length) {
+        newRole = roles[0];
+      }
       const user: TableItemProps = {
-        name: row.name,
-        email: row.email,
+        username: row.username,
+        fullName: `${row.firstName} ${row.lastName}`,
         ext: Math.floor(Math.random() * 900) + 100, // Random extension for example
-        role: "Admin",
+        role: newRole.name,
         domain: ".pbx1.cloudtalk.ca",
         api: "9d*******34",
       };
@@ -89,10 +108,13 @@ const CustomersDashboard = () => {
     setIsModalOpen(false);
     setInputRows([
       {
-        name: "",
+        username: "",
+        firstName: "",
+        lastName: "",
+        fullName: "",
         email: "",
         ext: "",
-        role: "Admin",
+        role: "",
         domain: ".pbx1.cloudtalk.ca",
       },
     ]);
@@ -100,8 +122,22 @@ const CustomersDashboard = () => {
 
   const handleUpdateUser = () => {
     if (editUser) {
+      let newRole: any = roles.filter((item) => {
+        return item.id === editUser.role;
+      })[0];
+      if (!newRole && roles.length) {
+        newRole = roles[0];
+      }
+      const updatedUser: TableItemProps = {
+        username: editUser.username,
+        fullName: `${editUser.firstName} ${editUser.lastName}`,
+        ext: editUser.ext,
+        role: newRole.name,
+        domain: editUser.domain,
+        api: editUser.api,
+      };
       const updatedUsers = tableItems.map((user) =>
-        user.email === editUser.email ? editUser : user
+        user.ext === editUser.ext ? updatedUser : user
       );
       setTableItems(updatedUsers);
       setIsEditModalOpen(false);
@@ -112,10 +148,13 @@ const CustomersDashboard = () => {
     setInputRows([
       ...inputRows,
       {
-        name: "",
+        username: "",
+        firstName: "",
+        lastName: "",
+        fullName: "",
         email: "",
         ext: "",
-        role: "Admin",
+        role: "",
         domain: ".pbx1.cloudtalk.ca",
       },
     ]);
@@ -130,6 +169,28 @@ const CustomersDashboard = () => {
     rows[index] = { ...rows[index], [field]: value };
     setInputRows(rows);
   };
+
+  const fetchRoleResponse = useCallback(async () => {
+    const response = await fetch(`${base_url}/admin/user_create`, {
+      headers: {
+        authorization: userData.token,
+      },
+    });
+    const data = await response.json();
+    const roleItems: Array<{ name: string; id: string }> = [];
+    for (let i = 0; i < data.data.length; i++) {
+      roleItems.push({
+        name: data.data[i].group_name,
+        id: data.data[i].group_uuid,
+      });
+    }
+
+    setRoles(roleItems);
+  }, []);
+
+  useEffect(() => {
+    fetchRoleResponse();
+  }, []);
 
   return (
     <div className="w-full h-screen flex flex-col bg-white font-nunito">
@@ -164,7 +225,14 @@ const CustomersDashboard = () => {
               </div>
               <Table
                 searchTerm={searchTerm}
-                headerItems={["Name", "Email", "Ext.", "Role", "Domain", "API"]}
+                headerItems={[
+                  "User Name",
+                  "Full Name",
+                  "Ext.",
+                  "Role",
+                  "Domain",
+                  "API",
+                ]}
                 tableItems={tableItems}
                 onEditUser={handleEditUser}
                 onDeleteUser={handleDeleteUser}
@@ -184,15 +252,45 @@ const CustomersDashboard = () => {
                         <div>
                           {index === 0 && (
                             <label className="block text-sm font-medium text-gray-700">
-                              Name
+                              User Name
                             </label>
                           )}
                           <input
                             type="text"
                             className="mt-1 p-2 border rounded-lg w-full"
-                            value={row.name}
+                            value={row.username}
                             onChange={(e) =>
-                              updateInputRow(index, "name", e.target.value)
+                              updateInputRow(index, "username", e.target.value)
+                            }
+                          />
+                        </div>
+                        <div>
+                          {index === 0 && (
+                            <label className="block text-sm font-medium text-gray-700">
+                              First Name
+                            </label>
+                          )}
+                          <input
+                            type="text"
+                            className="mt-1 p-2 border rounded-lg w-full"
+                            value={row.firstName}
+                            onChange={(e) =>
+                              updateInputRow(index, "firstName", e.target.value)
+                            }
+                          />
+                        </div>
+                        <div>
+                          {index === 0 && (
+                            <label className="block text-sm font-medium text-gray-700">
+                              Last Name
+                            </label>
+                          )}
+                          <input
+                            type="text"
+                            className="mt-1 p-2 border rounded-lg w-full"
+                            value={row.lastName}
+                            onChange={(e) =>
+                              updateInputRow(index, "lastName", e.target.value)
                             }
                           />
                         </div>
@@ -234,13 +332,16 @@ const CustomersDashboard = () => {
                           )}
                           <select
                             className="mt-1 p-2 border rounded-lg w-full"
-                            value={row.role}
+                            defaultValue={roles.length ? roles[0].id : ""}
                             onChange={(e) =>
                               updateInputRow(index, "role", e.target.value)
                             }
                           >
-                            <option value="Admin">Admin</option>
-                            <option value="User">User</option>
+                            {roles.map((item, index) => (
+                              <option key={index} value={item.id}>
+                                {item.name}
+                              </option>
+                            ))}
                           </select>
                         </div>
                         <div className="text-sm">
@@ -310,14 +411,49 @@ const CustomersDashboard = () => {
                       <div className="grid grid-cols-5 gap-4">
                         <div>
                           <label className="block text-sm font-medium text-gray-700">
-                            Name
+                            User Name
                           </label>
                           <input
                             type="text"
                             className="mt-1 p-2 border rounded-lg w-full"
-                            value={editUser.name}
+                            value={editUser.username}
                             onChange={(e) =>
-                              setEditUser({ ...editUser, name: e.target.value })
+                              setEditUser({
+                                ...editUser,
+                                username: e.target.value,
+                              })
+                            }
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">
+                            First Name
+                          </label>
+                          <input
+                            type="text"
+                            className="mt-1 p-2 border rounded-lg w-full"
+                            value={editUser.firstName}
+                            onChange={(e) =>
+                              setEditUser({
+                                ...editUser,
+                                firstName: e.target.value,
+                              })
+                            }
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">
+                            Last Name
+                          </label>
+                          <input
+                            type="text"
+                            className="mt-1 p-2 border rounded-lg w-full"
+                            value={editUser.lastName}
+                            onChange={(e) =>
+                              setEditUser({
+                                ...editUser,
+                                lastName: e.target.value,
+                              })
                             }
                           />
                         </div>
@@ -339,36 +475,23 @@ const CustomersDashboard = () => {
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-gray-700">
-                            Email
-                          </label>
-                          <input
-                            type="text"
-                            className="mt-1 p-2 border rounded-lg w-full"
-                            value={editUser.email}
-                            onChange={(e) =>
-                              setEditUser({
-                                ...editUser,
-                                email: e.target.value,
-                              })
-                            }
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">
                             Role
                           </label>
                           <select
                             className="mt-1 p-2 border rounded-lg w-full"
-                            value={editUser.role}
+                            defaultValue={roles.length ? roles[0].id : ""}
                             onChange={(e) =>
                               setEditUser({
                                 ...editUser,
-                                role: e.target.value as "Admin",
+                                role: e.target.value,
                               })
                             }
                           >
-                            <option value="Admin">Admin</option>
-                            <option value="User">User</option>
+                            {roles.map((item, index) => (
+                              <option key={index} value={item.id}>
+                                {item.name}
+                              </option>
+                            ))}
                           </select>
                         </div>
                         <div>

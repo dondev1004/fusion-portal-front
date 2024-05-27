@@ -6,6 +6,8 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useAppStore } from "../../../lib/zustand/store";
 
+import { base_url } from "../../../config/setting";
+
 const SignIn: React.FC = () => {
   const { setUserData, userData } = useAppStore();
   const ref = useRef<HTMLFormElement>(null);
@@ -23,21 +25,19 @@ const SignIn: React.FC = () => {
     const bodyData = Object.fromEntries(formData.entries());
 
     try {
-      const response = await fetch(
-        "http://192.168.103.172:3000/api/auth/admin/login",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            email: bodyData.email,
-            password: bodyData.password,
-          }),
-        }
-      );
+      const response = await fetch(`${base_url}/auth/admin/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: bodyData.email,
+          password: bodyData.password,
+        }),
+      });
 
       const data = await response.json();
+      console.log(data.data);
 
       if (!response.ok) {
         throw new Error(data.message || "Network response was not ok");

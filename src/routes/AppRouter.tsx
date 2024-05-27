@@ -1,5 +1,9 @@
 import React from "react";
-import { RouterProvider, createBrowserRouter } from "react-router-dom";
+import {
+  Navigate,
+  RouterProvider,
+  createBrowserRouter,
+} from "react-router-dom";
 
 import {
   AdminDashboard,
@@ -30,6 +34,10 @@ const AppRouter: React.FC = () => {
   ];
 
   const routersForAuthenticatedOnly = [
+    {
+      path: "/",
+      element: <Navigate to="/admin" replace />,
+    },
     {
       path: "",
       element: <ProtectedRoute />,
