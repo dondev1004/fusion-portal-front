@@ -33,21 +33,18 @@ const Modal: React.FC<IModal> = ({ width, isOpen, onClose, children }) => {
   return (
     <div
       className={`fixed inset-0 z-50 bg-gray-600 bg-opacity-75 ${transitionClasses} ${backgroundStyle}`}
-      style={{ transitionDelay: isOpen ? "0ms" : "300ms" }}
+      style={{ transitionDelay: "300ms" }}
       onClick={onClose}
       aria-hidden={!isOpen}
     >
-      <div
-        className="fixed inset-0 overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="fixed inset-0 overflow-y-auto">
         <div className="flex items-center justify-center min-h-full p-4 text-center">
           <div
             className={`inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl ${width} transform ${transitionClasses} ${contentStyle}`}
-            style={{ transitionDelay: isOpen ? "150ms" : "0ms" }}
             role="dialog"
             aria-modal="true"
             aria-labelledby="modal-headline"
+            onClick={(e) => e.stopPropagation()} // Prevent click event from bubbling up to parent div
           >
             {children}
           </div>

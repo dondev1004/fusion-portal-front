@@ -28,10 +28,10 @@ interface InputRowProps {
   username: string;
   firstName: string;
   lastName: string;
-  fullName: string;
+  fullName?: string;
   email?: string;
-  password: string;
-  confirm_password: string;
+  password?: string;
+  confirm_password?: string;
   role: string;
   domain: string;
   api?: string;
@@ -43,6 +43,7 @@ const CustomersDashboard = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [roles, setRoles] = useState<Array<{ name: string; id: string }>>([]);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [inputRows, setInputRows] = useState<Array<InputRowProps>>([
     {
       username: "",
@@ -57,6 +58,7 @@ const CustomersDashboard = () => {
     },
   ]);
   const [editUser, setEditUser] = useState<InputRowProps | null>(null);
+  const [viewUser, setViewUser] = useState<InputRowProps | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
   const sidebarMenus: Array<SidebarMenuItemProps> = [
@@ -78,6 +80,18 @@ const CustomersDashboard = () => {
   const onAddUser = (newUser: TableItemProps) => {
     setTableItems((prevItems) => [...prevItems, newUser]);
   };
+
+  // const handleViewUser = async (index: number) => {
+  //   setViewUser({
+  //     username: "don3",
+  //     firstName: "",
+  //     lastName: "",
+  //     email: "",
+  //     role: "",
+  //     domain: "",
+  //   });
+  //   setIsViewModalOpen(true);
+  // };
 
   const handleEditUser = async (index: number) => {
     try {
@@ -109,11 +123,6 @@ const CustomersDashboard = () => {
     } catch (e) {
       toast("Can't found the selected user", { type: "warning" });
     }
-  };
-
-  const handleDeleteUser = (index: number) => {
-    const updatedUsers = tableItems.filter((_, i) => i !== index);
-    setTableItems(updatedUsers);
   };
 
   const handleAddUser = async () => {
@@ -208,7 +217,7 @@ const CustomersDashboard = () => {
               fullName: `${editUser.firstName} ${editUser.lastName}`,
               email: editUser.email,
               password: editUser.password,
-              groups: editUser.role,
+              group: editUser.role,
               domain: editUser.domain,
               api: editUser.api as string,
             }),
@@ -220,12 +229,15 @@ const CustomersDashboard = () => {
           return;
         }
 
+        let newRole: string = "";
+        roles.map((role) => {
+          if (role.id === editUser.role) newRole = role.name;
+        });
+
         const updatedUser: TableItemProps = {
           username: editUser.username,
           fullName: `${editUser.firstName} ${editUser.lastName}`,
-          role: roles.map((role) => {
-            if (role.id === editUser.role) return role.name;
-          })[0] as string,
+          role: newRole,
           domain: editUser.domain,
           api: editUser.api as string,
         };
@@ -310,6 +322,59 @@ const CustomersDashboard = () => {
     }
   }, [userData.token]);
 
+  const handleViewUser = async (index: number) => {
+    try {
+      const response = await fetch(
+        `${base_url}/admin/user_read/${userIds[index]}`,
+        {
+          headers: {
+            authorization: userData.token,
+          },
+        }
+      );
+      if (response.ok) {
+        const data = await response.json();
+        setViewUser({
+          username: data.data.username,
+          firstName: data.data.contact_name_given,
+          lastName: data.data.contact_name_family,
+          email: data.data.user_email,
+          role: data.data.group_names,
+          domain: data.data.domain_name,
+        });
+        setIsViewModalOpen(true);
+      } else {
+        console.error("Failed to fetch user details:", response.statusText);
+      }
+    } catch (error) {
+      console.error("Error fetching user details:", error);
+    }
+  };
+
+  const handleDeleteUser = async (index: number) => {
+    try {
+      const response = await fetch(
+        `${base_url}/admin/user_delete/${userIds[index]}`,
+        {
+          method: "DELETE",
+          headers: {
+            authorization: userData.token,
+          },
+        }
+      );
+      if (response.ok) {
+        toast.success("Deleted Successfully");
+
+        const updatedUsers = tableItems.filter((_, i) => i !== index);
+        setTableItems(updatedUsers);
+      } else {
+        toast.error("Failed to Delete");
+      }
+    } catch (error) {
+      console.error("Error fetching user details:", error);
+    }
+  };
+
   useEffect(() => {
     fetchRoleResponse();
     fetchUserList();
@@ -360,6 +425,7 @@ const CustomersDashboard = () => {
                     "API",
                   ]}
                   tableItems={tableItems}
+                  onViewUser={handleViewUser}
                   onEditUser={handleEditUser}
                   onDeleteUser={handleDeleteUser}
                 />
@@ -716,6 +782,79 @@ const CustomersDashboard = () => {
                           onClick={handleUpdateUser}
                         >
                           Update
+                        </button>
+                      </div>
+                    </div>
+                  </Modal>
+                )}
+                {viewUser && (
+                  <Modal
+                    width="w-[1100px]"
+                    isOpen={isViewModalOpen}
+                    onClose={() => setIsViewModalOpen(false)}
+                  >
+                    <div>
+                      <h2 className="text-xl text-gray-500 mb-4 bg-gray-100 border-b-2 border-gray-300 p-4 text-center">
+                        View User
+                      </h2>
+                      <div className="p-6 space-y-6">
+                        <div className="grid grid-cols-4 gap-4">
+                          <div>
+                            <label className="block text-xs font-medium text-gray-500">
+                              User Name
+                            </label>
+                            <p className="p-2 text-xl w-full">
+                              {viewUser.username}
+                            </p>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-500">
+                              First Name
+                            </label>
+                            <p className="p-2 text-xl w-full">
+                              {viewUser.firstName}
+                            </p>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-500">
+                              Last Name
+                            </label>
+                            <p className="p-2 text-xl w-full">
+                              {viewUser.lastName}
+                            </p>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-500">
+                              Email
+                            </label>
+                            <p className="p-2 text-xl w-full">
+                              {viewUser.email}
+                            </p>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-500">
+                              Role
+                            </label>
+                            <p className="p-2 text-xl w-full">
+                              {viewUser.role}
+                            </p>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-500">
+                              Domain
+                            </label>
+                            <p className="p-2 text-xl w-full">
+                              {viewUser.domain}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex justify-end p-4 border-t border-gray-200">
+                        <button
+                          className="px-6 py-2 bg-blue-600 text-white rounded-lg"
+                          onClick={() => setIsViewModalOpen(false)}
+                        >
+                          OK
                         </button>
                       </div>
                     </div>

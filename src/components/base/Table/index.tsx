@@ -5,14 +5,16 @@ export interface TableProps {
   searchTerm: string;
   headerItems: Array<string>;
   tableItems: Array<any>;
+  onViewUser: (index: number) => Promise<void>;
   onEditUser: (index: number) => Promise<void>;
-  onDeleteUser: (index: number) => void;
+  onDeleteUser: (index: number) => Promise<void>;
 }
 
 const Table: React.FC<TableProps> = ({
   searchTerm,
   headerItems,
   tableItems,
+  onViewUser,
   onEditUser,
   onDeleteUser,
 }) => {
@@ -63,7 +65,10 @@ const Table: React.FC<TableProps> = ({
             </thead>
             <tbody className="bg-white divide-y divide-gray-200 text-14">
               {paginatedItems.map((item, index) => (
-                <tr key={index}>
+                <tr
+                  className="bg-white hover:bg-gray-100 cursor-pointer duration-150"
+                  key={index}
+                >
                   {Object.values(item).map((objectItem, index2) => {
                     // if (typeof objectItem === "boolean")
                     //   return (
@@ -73,7 +78,11 @@ const Table: React.FC<TableProps> = ({
                     //   );
 
                     return (
-                      <td className="px-6 py-3 whitespace-nowrap" key={index2}>
+                      <td
+                        className="px-6 py-3 whitespace-nowrap"
+                        key={index2}
+                        onClick={() => onViewUser(index)}
+                      >
                         {objectItem as string}
                       </td>
                     );

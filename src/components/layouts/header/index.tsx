@@ -1,11 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useAppStore } from "../../../lib/zustand/store";
 
 const Header = () => {
   const { uiData, setSelectMenuItem, setUserData, userData } = useAppStore();
   const location = useLocation();
-  const navigate = useNavigate();
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
