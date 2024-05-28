@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { ToastContainer, toast } from "react-toastify";
 import Sidebar, {
   SidebarMenuItemProps,
 } from "../../../components/advanced/layouts/Sidebar";
@@ -12,7 +13,7 @@ import { base_url } from "../../../config/setting";
 import { useAppStore } from "../../../lib/zustand/store";
 
 import { AiOutlineSearch } from "react-icons/ai";
-import { BsCopy, BsPlusLg, BsTrash } from "react-icons/bs";
+import { BsPlusLg } from "react-icons/bs";
 import { FaHatWizard, FaUserGroup } from "react-icons/fa6";
 
 interface TableItemProps {
@@ -24,12 +25,13 @@ interface TableItemProps {
 }
 
 interface InputRowProps {
-  userId?: string;
   username: string;
   firstName: string;
   lastName: string;
   fullName: string;
   email?: string;
+  password: string;
+  confirm_password: string;
   role: string;
   domain: string;
   api?: string;
@@ -48,6 +50,8 @@ const CustomersDashboard = () => {
       lastName: "",
       fullName: "",
       email: "",
+      password: "",
+      confirm_password: "",
       role: "",
       domain: ".pbx1.cloudtalk.ca",
     },
@@ -68,22 +72,43 @@ const CustomersDashboard = () => {
   ];
 
   const [selectedItemIndex, setSelectedItemIndex] = useState(0);
+  const [userIds, setUserIds] = useState<Array<string>>([]);
   const [tableItems, setTableItems] = useState<Array<TableItemProps>>([]);
 
   const onAddUser = (newUser: TableItemProps) => {
     setTableItems((prevItems) => [...prevItems, newUser]);
   };
 
-  const handleEditUser = (index: number) => {
-    const user = tableItems[index];
-    const [firstName, lastName] = user.fullName.split(" ");
-    setEditUser({
-      ...user,
-      firstName,
-      lastName,
-    });
-    setSelectedItemIndex(index);
-    setIsEditModalOpen(true);
+  const handleEditUser = async (index: number) => {
+    try {
+      const response = await fetch(
+        `${base_url}/admin/user_update/${userIds[index]}`,
+        {
+          headers: {
+            authorization: userData.token,
+          },
+        }
+      );
+      const data = await response.json();
+      const user = tableItems[index];
+      setEditUser({
+        ...user,
+        username: data.data.user.username ?? "",
+        firstName: data.data.user.contact_name_family ?? "",
+        lastName: data.data.user.contact_name_given ?? "",
+        fullName: data.data.user.contact_name ?? "",
+        email: data.data.user.user_email ?? "",
+        password: "",
+        confirm_password: "",
+        role: data.data.user.group_uuids ?? "",
+        domain: data.data.user.domain_name ?? "",
+      });
+
+      setSelectedItemIndex(index);
+      setIsEditModalOpen(true);
+    } catch (e) {
+      toast("Can't found the selected user", { type: "warning" });
+    }
   };
 
   const handleDeleteUser = (index: number) => {
@@ -93,12 +118,19 @@ const CustomersDashboard = () => {
 
   const handleAddUser = async () => {
     for (const row of inputRows) {
+      if (row.password !== row.confirm_password) {
+        toast("Password and confirm password are not match!", {
+          type: "warning",
+        });
+        return;
+      }
+
       let newRole = roles.find((item) => item.id === row.role);
       if (!newRole && roles.length) {
         newRole = roles[0];
       }
 
-      const newUser: TableItemProps = {
+      const newUser: any = {
         username: row.username,
         fullName: `${row.firstName} ${row.lastName}`,
         role: newRole?.name || "",
@@ -107,98 +139,119 @@ const CustomersDashboard = () => {
       };
 
       try {
-        const response = await fetch(
-          `http://192.168.103.172:3000/api/admin/user_create`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              authorization: userData.token,
-            },
-            body: JSON.stringify(newUser),
-          }
-        );
+        const response = await fetch(`${base_url}/admin/user_create`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            authorization: userData.token,
+          },
+          body: JSON.stringify({
+            username: row.username,
+            firstName: row.firstName,
+            lastName: row.lastName,
+            email: row.email,
+            password: row.password,
+            group: row.role,
+          }),
+        });
 
         if (response.ok) {
-          const data = await response.json();
-          if (data.success) {
-            onAddUser(newUser);
-          } else {
-            console.error("Failed to create user:", data.message);
-          }
+          onAddUser(newUser);
+          setIsModalOpen(false);
+          setInputRows([
+            {
+              username: "",
+              firstName: "",
+              lastName: "",
+              fullName: "",
+              email: "",
+              password: "",
+              confirm_password: "",
+              role: roles[0].id,
+              domain: ".pbx1.cloudtalk.ca",
+            },
+          ]);
+          toast("The user created successfully", { type: "success" });
         } else {
-          console.error("Failed to create user:", response.statusText);
+          console.log(response.status, response.ok);
+          const errorData = await response.json();
+          toast(errorData.msg, { type: "warning" });
         }
       } catch (error) {
         console.error("Error creating user:", error);
       }
     }
-
-    setIsModalOpen(false);
-    setInputRows([
-      {
-        username: "",
-        firstName: "",
-        lastName: "",
-        fullName: "",
-        email: "",
-        role: roles[0].id,
-        domain: ".pbx1.cloudtalk.ca",
-      },
-    ]);
   };
 
-  const handleUpdateUser = () => {
+  const handleUpdateUser = async () => {
     if (editUser) {
-      let newRole: any = roles.filter((item) => {
-        return item.id === editUser.role;
-      })[0];
-      if (!newRole && roles.length) {
-        newRole = roles[0];
+      if (editUser.password !== editUser.confirm_password) {
+        toast("Password and confirm password are not match!", {
+          type: "warning",
+        });
+        return;
       }
-      const updatedUser: TableItemProps = {
-        username: editUser.username,
-        fullName: `${editUser.firstName} ${editUser.lastName}`,
-        role: newRole?.name || "",
-        domain: editUser.domain,
-        api: editUser.api as string,
-      };
-      const updatedUsers = tableItems.map((user, i) =>
-        selectedItemIndex === i ? updatedUser : user
-      );
-      setTableItems(updatedUsers);
-      setInputRows([
-        {
-          username: "",
-          firstName: "",
-          lastName: "",
-          fullName: "",
-          email: "",
-          role: "",
-          domain: ".pbx1.cloudtalk.ca",
-        },
-      ]);
-      setIsEditModalOpen(false);
+
+      try {
+        const response = await fetch(
+          `${base_url}/admin/user_update/${userIds[selectedItemIndex]}`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              authorization: userData.token,
+            },
+            body: JSON.stringify({
+              username: editUser.username,
+              firstName: editUser.firstName,
+              lastName: editUser.lastName,
+              fullName: `${editUser.firstName} ${editUser.lastName}`,
+              email: editUser.email,
+              password: editUser.password,
+              groups: editUser.role,
+              domain: editUser.domain,
+              api: editUser.api as string,
+            }),
+          }
+        );
+        const data = await response.json();
+        if (!response.ok) {
+          toast(data.msg, { type: "warning" });
+          return;
+        }
+
+        const updatedUser: TableItemProps = {
+          username: editUser.username,
+          fullName: `${editUser.firstName} ${editUser.lastName}`,
+          role: roles.map((role) => {
+            if (role.id === editUser.role) return role.name;
+          })[0] as string,
+          domain: editUser.domain,
+          api: editUser.api as string,
+        };
+        const updatedUsers = tableItems.map((user, i) =>
+          selectedItemIndex === i ? updatedUser : user
+        );
+        setTableItems(updatedUsers);
+        setInputRows([
+          {
+            username: "",
+            firstName: "",
+            lastName: "",
+            fullName: "",
+            email: "",
+            password: "",
+            confirm_password: "",
+            role: "",
+            domain: ".pbx1.cloudtalk.ca",
+          },
+        ]);
+        setIsEditModalOpen(false);
+      } catch (e) {
+        toast("Fetch error", { type: "warning" });
+        console.warn("Fetch error", e);
+      }
     }
-  };
-
-  const addInputRow = () => {
-    setInputRows([
-      ...inputRows,
-      {
-        username: "",
-        firstName: "",
-        lastName: "",
-        fullName: "",
-        email: "",
-        role: "",
-        domain: ".pbx1.cloudtalk.ca",
-      },
-    ]);
-  };
-
-  const removeInputRow = (index: number) => {
-    setInputRows(inputRows.filter((_, i) => i !== index));
   };
 
   const updateInputRow = (
@@ -239,6 +292,7 @@ const CustomersDashboard = () => {
       if (response.ok) {
         const data = await response.json();
 
+        const userIdData = data.data.users.map((user: any) => user.user_uuid);
         const users: TableItemProps[] = data.data.users.map((user: any) => ({
           username: user.username,
           fullName: user.contact_name,
@@ -246,6 +300,7 @@ const CustomersDashboard = () => {
           domain: user.domain_name,
           api: "",
         }));
+        setUserIds(userIdData);
         setTableItems(users);
       } else {
         console.error("Failed to fetch users:", response.statusText);
@@ -261,332 +316,418 @@ const CustomersDashboard = () => {
   }, [fetchRoleResponse, fetchUserList]);
 
   return (
-    <div className="w-full h-screen flex flex-col bg-white font-nunito">
-      <Header />
-      <main className="flex-1 py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex gap-4 h-full">
-          <Sidebar sidebarMenus={sidebarMenus} />
-          <div className="flex-1">
-            <div className="w-full bg-white rounded-md shadow-md">
-              <div className="flex justify-between items-center p-4">
-                <h1 className="text-2xl font-semibold text-gray-800">Users</h1>
-              </div>
-              <div className="flex justify-between items-center bg-gray-50 border-b p-5">
-                <div className="flex">
-                  <input
-                    type="text"
-                    placeholder="Search..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="px-4 py-1 border focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <div className="bg-gray-200 text-gray-600 grid place-items-center px-2 border-gray-200 cursor-pointer">
-                    <AiOutlineSearch className="" />
-                  </div>
+    <>
+      <ToastContainer />
+      <div className="w-full h-screen flex flex-col bg-white font-nunito">
+        <Header />
+        <main className="flex-1 py-8">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex gap-4 h-full">
+            <Sidebar sidebarMenus={sidebarMenus} />
+            <div className="flex-1">
+              <div className="w-full bg-white rounded-md shadow-md">
+                <div className="flex justify-between items-center p-4">
+                  <h1 className="text-2xl font-semibold text-gray-800">
+                    Users
+                  </h1>
                 </div>
-                <button
-                  onClick={() => setIsModalOpen(true)}
-                  className="px-2 py-1 border border-gray-200 flex items-center bg-gray-200 text-blue-400"
-                >
-                  <BsPlusLg className="mr-2" /> Add User
-                </button>
-              </div>
-              <Table
-                searchTerm={searchTerm}
-                headerItems={[
-                  "User Name",
-                  "Full Name",
-                  "Role",
-                  "Domain",
-                  "API",
-                ]}
-                tableItems={tableItems}
-                onEditUser={handleEditUser}
-                onDeleteUser={handleDeleteUser}
-              />
-              <Modal
-                width="w-[1000px]"
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-              >
-                <div>
-                  <h2 className="text-xl text-gray-500 mb-4 bg-gray-100 border-b-2 border-gray-300 p-4 text-center">
-                    Add User
-                  </h2>
-                  <div className="p-6 space-y-6">
-                    {inputRows.map((row, index) => (
-                      <div key={index} className="grid grid-cols-6 gap-4">
-                        <div>
-                          {index === 0 && (
-                            <label className="block text-sm font-medium text-gray-700">
-                              User Name
-                            </label>
-                          )}
-                          <input
-                            type="text"
-                            className="mt-1 p-2 border rounded-lg w-full"
-                            value={row.username}
-                            onChange={(e) =>
-                              updateInputRow(index, "username", e.target.value)
-                            }
-                          />
-                        </div>
-                        <div>
-                          {index === 0 && (
-                            <label className="block text-sm font-medium text-gray-700">
-                              First Name
-                            </label>
-                          )}
-                          <input
-                            type="text"
-                            className="mt-1 p-2 border rounded-lg w-full"
-                            value={row.firstName}
-                            onChange={(e) =>
-                              updateInputRow(index, "firstName", e.target.value)
-                            }
-                          />
-                        </div>
-                        <div>
-                          {index === 0 && (
-                            <label className="block text-sm font-medium text-gray-700">
-                              Last Name
-                            </label>
-                          )}
-                          <input
-                            type="text"
-                            className="mt-1 p-2 border rounded-lg w-full"
-                            value={row.lastName}
-                            onChange={(e) =>
-                              updateInputRow(index, "lastName", e.target.value)
-                            }
-                          />
-                        </div>
-                        <div>
-                          {index === 0 && (
-                            <label className="block text-sm font-medium text-gray-700">
-                              Email
-                            </label>
-                          )}
-                          <input
-                            type="text"
-                            className="mt-1 p-2 border rounded-lg w-full"
-                            value={row.email}
-                            onChange={(e) =>
-                              updateInputRow(index, "email", e.target.value)
-                            }
-                          />
-                        </div>
-                        <div className="text-sm">
-                          {index === 0 && (
-                            <label className="block text-sm font-medium text-gray-700">
-                              Role
-                            </label>
-                          )}
-                          <select
-                            className="mt-1 p-2 border rounded-lg w-full"
-                            value={row.role}
-                            onChange={(e) =>
-                              updateInputRow(index, "role", e.target.value)
-                            }
-                          >
-                            {roles.map((item, index) => (
-                              <option key={index} value={item.id}>
-                                {item.name}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        <div className="text-sm">
-                          {index === 0 && (
-                            <label className="block text-sm font-medium text-gray-700">
-                              Domain
-                            </label>
-                          )}
-                          <select
-                            className="mt-1 p-2 border rounded-lg w-full"
-                            value={row.domain}
-                            onChange={(e) =>
-                              updateInputRow(index, "domain", e.target.value)
-                            }
-                          >
-                            <option value=".pbx1.cloudtalk.ca">
-                              .pbx1.cloudtalk.ca
-                            </option>
-                          </select>
-                        </div>
-                        <div className="pt-6 flex items-center gap-4">
-                          <button
-                            className="text-blue-400 hover:text-blue-500"
-                            onClick={addInputRow}
-                          >
-                            <BsCopy />
-                          </button>
-                          {inputRows.length > 1 && (
-                            <button
-                              className="text-blue-400 hover:text-blue-500"
-                              onClick={() => removeInputRow(index)}
-                            >
-                              <BsTrash />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
+                <div className="flex justify-between items-center bg-gray-50 border-b p-5">
+                  <div className="flex">
+                    <input
+                      type="text"
+                      placeholder="Search..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="px-4 py-1 border focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <div className="bg-gray-200 text-gray-600 grid place-items-center px-2 border-gray-200 cursor-pointer">
+                      <AiOutlineSearch className="" />
+                    </div>
                   </div>
-                  <div className="flex justify-end p-4 border-t border-gray-200">
-                    <button
-                      className="px-4 py-2 mr-2 bg-gray-300 rounded-lg"
-                      onClick={() => {
-                        setInputRows([
-                          {
-                            username: "",
-                            firstName: "",
-                            lastName: "",
-                            fullName: "",
-                            email: "",
-                            role: "",
-                            domain: ".pbx1.cloudtalk.ca",
-                          },
-                        ]);
-                        setIsModalOpen(false);
-                      }}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      className="px-6 py-2 bg-blue-600 text-white rounded-lg"
-                      onClick={handleAddUser}
-                    >
-                      OK
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => setIsModalOpen(true)}
+                    className="px-2 py-1 border border-gray-200 flex items-center bg-gray-200 text-blue-400"
+                  >
+                    <BsPlusLg className="mr-2" /> Add User
+                  </button>
                 </div>
-              </Modal>
-              {editUser && (
+                <Table
+                  searchTerm={searchTerm}
+                  headerItems={[
+                    "User Name",
+                    "Full Name",
+                    "Role",
+                    "Domain",
+                    "API",
+                  ]}
+                  tableItems={tableItems}
+                  onEditUser={handleEditUser}
+                  onDeleteUser={handleDeleteUser}
+                />
                 <Modal
-                  width="w-[1000px]"
-                  isOpen={isEditModalOpen}
-                  onClose={() => setIsEditModalOpen(false)}
+                  width="w-[1100px]"
+                  isOpen={isModalOpen}
+                  onClose={() => setIsModalOpen(false)}
                 >
                   <div>
                     <h2 className="text-xl text-gray-500 mb-4 bg-gray-100 border-b-2 border-gray-300 p-4 text-center">
-                      Edit User
+                      Add User
                     </h2>
                     <div className="p-6 space-y-6">
-                      <div className="grid grid-cols-5 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">
-                            User Name
-                          </label>
-                          <input
-                            type="text"
-                            className="mt-1 p-2 border rounded-lg w-full"
-                            value={editUser.username}
-                            onChange={(e) =>
-                              setEditUser({
-                                ...editUser,
-                                username: e.target.value,
-                              })
-                            }
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">
-                            First Name
-                          </label>
-                          <input
-                            type="text"
-                            className="mt-1 p-2 border rounded-lg w-full"
-                            value={editUser.firstName}
-                            onChange={(e) =>
-                              setEditUser({
-                                ...editUser,
-                                firstName: e.target.value,
-                              })
-                            }
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">
-                            Last Name
-                          </label>
-                          <input
-                            type="text"
-                            className="mt-1 p-2 border rounded-lg w-full"
-                            value={editUser.lastName}
-                            onChange={(e) =>
-                              setEditUser({
-                                ...editUser,
-                                lastName: e.target.value,
-                              })
-                            }
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">
-                            Role
-                          </label>
-                          <select
-                            className="mt-1 p-2 border rounded-lg w-full"
-                            defaultValue={roles.length ? roles[0].id : ""}
-                            onChange={(e) =>
-                              setEditUser({
-                                ...editUser,
-                                role: e.target.value,
-                              })
-                            }
-                          >
-                            {roles.map((item, index) => (
-                              <option key={index} value={item.id}>
-                                {item.name}
+                      {inputRows.map((row, index) => (
+                        <div key={index} className="grid grid-cols-4 gap-4">
+                          <div>
+                            {index === 0 && (
+                              <label className="block text-sm font-medium text-gray-700">
+                                User Name
+                              </label>
+                            )}
+                            <input
+                              type="text"
+                              className="mt-1 p-2 border rounded-lg w-full"
+                              value={row.username}
+                              onChange={(e) =>
+                                updateInputRow(
+                                  index,
+                                  "username",
+                                  e.target.value
+                                )
+                              }
+                            />
+                          </div>
+                          <div>
+                            {index === 0 && (
+                              <label className="block text-sm font-medium text-gray-700">
+                                First Name
+                              </label>
+                            )}
+                            <input
+                              type="text"
+                              className="mt-1 p-2 border rounded-lg w-full"
+                              value={row.firstName}
+                              onChange={(e) =>
+                                updateInputRow(
+                                  index,
+                                  "firstName",
+                                  e.target.value
+                                )
+                              }
+                            />
+                          </div>
+                          <div>
+                            {index === 0 && (
+                              <label className="block text-sm font-medium text-gray-700">
+                                Last Name
+                              </label>
+                            )}
+                            <input
+                              type="text"
+                              className="mt-1 p-2 border rounded-lg w-full"
+                              value={row.lastName}
+                              onChange={(e) =>
+                                updateInputRow(
+                                  index,
+                                  "lastName",
+                                  e.target.value
+                                )
+                              }
+                            />
+                          </div>
+                          <div>
+                            {index === 0 && (
+                              <label className="block text-sm font-medium text-gray-700">
+                                Email
+                              </label>
+                            )}
+                            <input
+                              type="text"
+                              className="mt-1 p-2 border rounded-lg w-full"
+                              value={row.email}
+                              onChange={(e) =>
+                                updateInputRow(index, "email", e.target.value)
+                              }
+                            />
+                          </div>
+                          <div>
+                            {index === 0 && (
+                              <label className="block text-sm font-medium text-gray-700">
+                                Password
+                              </label>
+                            )}
+                            <input
+                              type="password"
+                              className="mt-1 p-2 border rounded-lg w-full"
+                              value={row.password}
+                              onChange={(e) =>
+                                updateInputRow(
+                                  index,
+                                  "password",
+                                  e.target.value
+                                )
+                              }
+                            />
+                          </div>
+                          <div>
+                            {index === 0 && (
+                              <label className="block text-sm font-medium text-gray-700">
+                                Confirm Password
+                              </label>
+                            )}
+                            <input
+                              type="password"
+                              className="mt-1 p-2 border rounded-lg w-full"
+                              value={row.confirm_password}
+                              onChange={(e) =>
+                                updateInputRow(
+                                  index,
+                                  "confirm_password",
+                                  e.target.value
+                                )
+                              }
+                            />
+                          </div>
+                          <div className="text-sm">
+                            {index === 0 && (
+                              <label className="block text-sm font-medium text-gray-700">
+                                Role
+                              </label>
+                            )}
+                            <select
+                              className="mt-1 p-2 border rounded-lg w-full"
+                              value={row.role}
+                              onChange={(e) =>
+                                updateInputRow(index, "role", e.target.value)
+                              }
+                            >
+                              {roles.map((item, index) => (
+                                <option key={index} value={item.id}>
+                                  {item.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="text-sm">
+                            {index === 0 && (
+                              <label className="block text-sm font-medium text-gray-700">
+                                Domain
+                              </label>
+                            )}
+                            <select
+                              className="mt-1 p-2 border rounded-lg w-full"
+                              value={row.domain}
+                              onChange={(e) =>
+                                updateInputRow(index, "domain", e.target.value)
+                              }
+                            >
+                              <option value=".pbx1.cloudtalk.ca">
+                                .pbx1.cloudtalk.ca
                               </option>
-                            ))}
-                          </select>
+                            </select>
+                          </div>
                         </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">
-                            Domain
-                          </label>
-                          <select
-                            className="mt-1 p-2 border rounded-lg w-full"
-                            value={editUser.domain}
-                            onChange={(e) =>
-                              setEditUser({
-                                ...editUser,
-                                domain: e.target.value as ".pbx1.cloudtalk.ca",
-                              })
-                            }
-                          >
-                            <option value=".pbx1.cloudtalk.ca">
-                              .pbx1.cloudtalk.ca
-                            </option>
-                          </select>
-                        </div>
-                      </div>
+                      ))}
                     </div>
                     <div className="flex justify-end p-4 border-t border-gray-200">
                       <button
                         className="px-4 py-2 mr-2 bg-gray-300 rounded-lg"
-                        onClick={() => setIsEditModalOpen(false)}
+                        onClick={() => {
+                          setInputRows([
+                            {
+                              username: "",
+                              firstName: "",
+                              lastName: "",
+                              fullName: "",
+                              email: "",
+                              password: "",
+                              confirm_password: "",
+                              role: "",
+                              domain: ".pbx1.cloudtalk.ca",
+                            },
+                          ]);
+                          setIsModalOpen(false);
+                        }}
                       >
                         Cancel
                       </button>
                       <button
                         className="px-6 py-2 bg-blue-600 text-white rounded-lg"
-                        onClick={handleUpdateUser}
+                        onClick={handleAddUser}
                       >
-                        Update
+                        OK
                       </button>
                     </div>
                   </div>
                 </Modal>
-              )}
+                {editUser && (
+                  <Modal
+                    width="w-[1100px]"
+                    isOpen={isEditModalOpen}
+                    onClose={() => setIsEditModalOpen(false)}
+                  >
+                    <div>
+                      <h2 className="text-xl text-gray-500 mb-4 bg-gray-100 border-b-2 border-gray-300 p-4 text-center">
+                        Edit User
+                      </h2>
+                      <div className="p-6 space-y-6">
+                        <div className="grid grid-cols-4 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700">
+                              User Name
+                            </label>
+                            <input
+                              type="text"
+                              className="mt-1 p-2 border rounded-lg w-full"
+                              value={editUser.username}
+                              onChange={(e) =>
+                                setEditUser({
+                                  ...editUser,
+                                  username: e.target.value,
+                                })
+                              }
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700">
+                              First Name
+                            </label>
+                            <input
+                              type="text"
+                              className="mt-1 p-2 border rounded-lg w-full"
+                              value={editUser.firstName}
+                              onChange={(e) =>
+                                setEditUser({
+                                  ...editUser,
+                                  firstName: e.target.value,
+                                })
+                              }
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700">
+                              Last Name
+                            </label>
+                            <input
+                              type="text"
+                              className="mt-1 p-2 border rounded-lg w-full"
+                              value={editUser.lastName}
+                              onChange={(e) =>
+                                setEditUser({
+                                  ...editUser,
+                                  lastName: e.target.value,
+                                })
+                              }
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700">
+                              Email
+                            </label>
+                            <input
+                              type="text"
+                              className="mt-1 p-2 border rounded-lg w-full"
+                              value={editUser.email}
+                              onChange={(e) =>
+                                setEditUser({
+                                  ...editUser,
+                                  email: e.target.value,
+                                })
+                              }
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700">
+                              Password
+                            </label>
+                            <input
+                              type="password"
+                              className="mt-1 p-2 border rounded-lg w-full"
+                              value={editUser.password}
+                              onChange={(e) =>
+                                setEditUser({
+                                  ...editUser,
+                                  password: e.target.value,
+                                })
+                              }
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700">
+                              Confirm Password
+                            </label>
+                            <input
+                              type="password"
+                              className="mt-1 p-2 border rounded-lg w-full"
+                              value={editUser.confirm_password}
+                              onChange={(e) =>
+                                setEditUser({
+                                  ...editUser,
+                                  confirm_password: e.target.value,
+                                })
+                              }
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700">
+                              Role
+                            </label>
+                            <select
+                              className="mt-1 p-2 border rounded-lg w-full"
+                              value={editUser.role}
+                              onChange={(e) =>
+                                setEditUser({
+                                  ...editUser,
+                                  role: e.target.value,
+                                })
+                              }
+                            >
+                              {roles.map((item, index) => (
+                                <option key={index} value={item.id}>
+                                  {item.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700">
+                              Domain
+                            </label>
+                            <input
+                              className="mt-1 p-2 border rounded-lg w-full"
+                              value={editUser.domain}
+                              onChange={(e) =>
+                                setEditUser({
+                                  ...editUser,
+                                  domain: e.target
+                                    .value as ".pbx1.cloudtalk.ca",
+                                })
+                              }
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex justify-end p-4 border-t border-gray-200">
+                        <button
+                          className="px-4 py-2 mr-2 bg-gray-300 rounded-lg"
+                          onClick={() => setIsEditModalOpen(false)}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          className="px-6 py-2 bg-blue-600 text-white rounded-lg"
+                          onClick={handleUpdateUser}
+                        >
+                          Update
+                        </button>
+                      </div>
+                    </div>
+                  </Modal>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      </main>
-      <Footer />
-    </div>
+        </main>
+        <Footer />
+      </div>
+    </>
   );
 };
 

@@ -95,5 +95,7 @@ export const createUserSlice: StateCreator<UserSlice> = (set, get) => ({
     userData.token = token;
     userData.expireTime = expireTime;
     userData.loginTime = loginTime;
+
+    set({ userData });
   },
 });

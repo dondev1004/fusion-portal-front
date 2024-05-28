@@ -5,7 +5,7 @@ export interface TableProps {
   searchTerm: string;
   headerItems: Array<string>;
   tableItems: Array<any>;
-  onEditUser: (index: number) => void;
+  onEditUser: (index: number) => Promise<void>;
   onDeleteUser: (index: number) => void;
 }
 
@@ -24,7 +24,6 @@ const Table: React.FC<TableProps> = ({
   const filteredItems = tableItems.filter(
     (item) =>
       item.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.ext.toString().includes(searchTerm) ||
       item.domain.toLowerCase().includes(searchTerm.toLowerCase())
   );
 

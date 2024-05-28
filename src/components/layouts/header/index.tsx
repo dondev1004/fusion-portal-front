@@ -23,7 +23,6 @@ const Header = () => {
 
   const handleLogout = () => {
     setUserData(false, "", "", "", "", "", 0, 0);
-    navigate("/auth/signin"); // Redirect to the login page
   };
 
   useEffect(() => {
