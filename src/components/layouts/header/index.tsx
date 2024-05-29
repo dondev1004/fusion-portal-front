@@ -12,6 +12,7 @@ const Header = () => {
   const menus: Array<{ name: string; to: string }> = [
     { name: "Home", to: "/admin" },
     { name: "Users", to: "/admin/users/default" },
+    { name: "Domains", to: "/admin/domains/default" },
     { name: "Extensions", to: "/admin/extensions/default" },
     { name: "Settings", to: "/customer" },
   ];

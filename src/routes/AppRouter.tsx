@@ -7,7 +7,7 @@ import {
 
 import {
   AdminDashboard,
-  CustomersDashboard,
+  DomainsDashboard,
   ExtensionsDashboard,
   UsersDashboard,
 } from "../pages/admin";
@@ -47,8 +47,8 @@ const AppRouter: React.FC = () => {
           element: <AdminDashboard />,
         },
         {
-          path: "/admin/customers/default",
-          element: <CustomersDashboard />,
+          path: "/admin/domains/default",
+          element: <DomainsDashboard />,
         },
         {
           path: "/admin/extensions/default",

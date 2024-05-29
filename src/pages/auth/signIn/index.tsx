@@ -13,6 +13,10 @@ const SignIn: React.FC = () => {
   const ref = useRef<HTMLFormElement>(null);
   const navigate = useNavigate();
 
+  const delay = (ms: number) => {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  };
+
   const checkLoggedIn = useCallback(async () => {
     if (userData.isAuthenticated) {
       navigate("/admin");
@@ -43,6 +47,8 @@ const SignIn: React.FC = () => {
         throw new Error(data.message || "Network response was not ok");
       }
 
+      toast.success("Login successful! Redirecting...");
+      await delay(2000);
       setUserData(
         true,
         bodyData.email as string,
@@ -53,11 +59,7 @@ const SignIn: React.FC = () => {
         3600,
         new Date().getTime()
       );
-
-      toast.success("Login successful! Redirecting...");
-      setTimeout(() => {
-        navigate("/admin");
-      }, 2000); // Redirect after 2 seconds
+      navigate("/admin");
     } catch (error) {
       toast.error("Login failed. Please try again.");
     }

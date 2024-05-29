@@ -1,9 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import "react-confirm-alert/src/react-confirm-alert.css";
 import { ToastContainer, toast } from "react-toastify";
-
-import ConfirmModal from "../../../components/base/ConfrimModal";
-
 import Sidebar, {
   SidebarMenuItemProps,
 } from "../../../components/advanced/layouts/Sidebar";
@@ -41,12 +37,11 @@ interface InputRowProps {
   api?: string;
 }
 
-const CustomersDashboard = () => {
+const DomainsDashboard = () => {
   const { userData } = useAppStore();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [roles, setRoles] = useState<Array<{ name: string; id: string }>>([]);
-  const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [inputRows, setInputRows] = useState<Array<InputRowProps>>([
@@ -328,7 +323,6 @@ const CustomersDashboard = () => {
   }, [userData.token]);
 
   const handleViewUser = async (index: number) => {
-    console.log(index, userIds);
     try {
       const response = await fetch(
         `${base_url}/admin/user_read/${userIds[index]}`,
@@ -358,19 +352,9 @@ const CustomersDashboard = () => {
   };
 
   const handleDeleteUser = async (index: number) => {
-    setSelectedItemIndex(index);
-    setConfirmModalOpen(true);
-  };
-
-  const handleConfirmCancel = () => {
-    setConfirmModalOpen(false);
-  };
-
-  const handleConfirm = async () => {
-    setConfirmModalOpen(false);
     try {
       const response = await fetch(
-        `${base_url}/admin/user_delete/${userIds[selectedItemIndex]}`,
+        `${base_url}/admin/user_delete/${userIds[index]}`,
         {
           method: "DELETE",
           headers: {
@@ -378,20 +362,16 @@ const CustomersDashboard = () => {
           },
         }
       );
-
       if (response.ok) {
         toast.success("Deleted Successfully");
 
-        const updatedUsers = tableItems.filter(
-          (_, i) => i !== selectedItemIndex
-        );
+        const updatedUsers = tableItems.filter((_, i) => i !== index);
         setTableItems(updatedUsers);
       } else {
         toast.error("Failed to Delete");
       }
     } catch (error) {
-      console.error("Error deleting user:", error);
-      toast.error("An error occurred while deleting the user.");
+      console.error("Error fetching user details:", error);
     }
   };
 
@@ -412,7 +392,7 @@ const CustomersDashboard = () => {
               <div className="w-full bg-white rounded-md shadow-md">
                 <div className="flex justify-between items-center p-4">
                   <h1 className="text-2xl font-semibold text-gray-800">
-                    Users
+                    Domains
                   </h1>
                 </div>
                 <div className="flex justify-between items-center bg-gray-50 border-b p-5">
@@ -432,28 +412,16 @@ const CustomersDashboard = () => {
                     onClick={() => setIsModalOpen(true)}
                     className="px-2 py-1 border border-gray-200 flex items-center bg-gray-200 text-blue-400"
                   >
-                    <BsPlusLg className="mr-2" /> Add User
+                    <BsPlusLg className="mr-2" /> Add Domain
                   </button>
                 </div>
                 <Table
                   searchTerm={searchTerm}
-                  headerItems={[
-                    "User Name",
-                    "Full Name",
-                    "Role",
-                    "Domain",
-                    "API",
-                  ]}
+                  headerItems={["Domain Name", "Domain Description", "Enabled"]}
                   tableItems={tableItems}
                   onViewUser={handleViewUser}
                   onEditUser={handleEditUser}
                   onDeleteUser={handleDeleteUser}
-                />
-                <ConfirmModal
-                  isOpen={confirmModalOpen}
-                  onRequestClose={handleConfirmCancel}
-                  onConfirm={handleConfirm}
-                  message="Are you sure you want to delete this item?"
                 />
                 <Modal
                   width="w-[1100px]"
@@ -896,4 +864,4 @@ const CustomersDashboard = () => {
   );
 };
 
-export default CustomersDashboard;
+export default DomainsDashboard;
