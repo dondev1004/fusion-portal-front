@@ -1,16 +1,19 @@
 import React, { useState } from "react";
 import { FaEdit, FaTrashAlt } from "react-icons/fa";
+import { FcCancel, FcCheckmark } from "react-icons/fc";
 
 export interface TableProps {
+  tableType: "user" | "domain";
   searchTerm: string;
   headerItems: Array<string>;
   tableItems: Array<any>;
-  onViewUser: (index: number) => Promise<void>;
+  onViewUser?: (index: number) => Promise<void>;
   onEditUser: (index: number) => Promise<void>;
-  onDeleteUser: (index: number) => Promise<void>;
+  onDeleteUser?: (index: number) => Promise<void>;
 }
 
 const Table: React.FC<TableProps> = ({
+  tableType,
   searchTerm,
   headerItems,
   tableItems,
@@ -23,11 +26,18 @@ const Table: React.FC<TableProps> = ({
   const itemsPerPage = 10; // Number of items per page
   const totalPages = Math.ceil(tableItems.length / itemsPerPage);
 
-  const filteredItems = tableItems.filter(
-    (item) =>
-      item.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.domain.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredItems =
+    tableType === "user"
+      ? tableItems.filter(
+          (item) =>
+            item.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            item.domain.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+      : tableType === "domain"
+      ? tableItems.filter((item) =>
+          item.domain_name.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+      : [];
 
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedItems = filteredItems.slice(
@@ -70,36 +80,43 @@ const Table: React.FC<TableProps> = ({
                   key={index}
                 >
                   {Object.values(item).map((objectItem, index2) => {
-                    // if (typeof objectItem === "boolean")
-                    //   return (
-                    //     <td className="px-6 py-3 whitespace-nowrap">
-                    //       {objectItem ? <FcCheckmark /> : <FcCancel />}
-                    //     </td>
-                    //   );
+                    if (typeof objectItem === "boolean")
+                      return (
+                        <td
+                          className="px-6 py-3 whitespace-nowrap"
+                          key={index2}
+                        >
+                          {objectItem ? <FcCheckmark /> : <FcCancel />}
+                        </td>
+                      );
 
                     return (
                       <td
                         className="px-6 py-3 whitespace-nowrap"
                         key={index2}
-                        onClick={() => onViewUser(index)}
+                        onClick={() => {
+                          if (onViewUser) onViewUser(index);
+                        }}
                       >
                         {objectItem as string}
                       </td>
                     );
                   })}
-                  <td className="px-6 py-3 whitespace-nowrap">
+                  <td className="px-6 py-3 flex items-center justify-center">
                     <button
                       className="text-blue-400 hover:text-blue-500"
                       onClick={() => onEditUser(index)}
                     >
                       <FaEdit />
                     </button>
-                    <button
-                      className="text-red-400 hover:text-red-500 ml-4"
-                      onClick={() => onDeleteUser(index)}
-                    >
-                      <FaTrashAlt />
-                    </button>
+                    {onDeleteUser ? (
+                      <button
+                        className="text-red-400 hover:text-red-500 ml-4"
+                        onClick={() => onDeleteUser(index)}
+                      >
+                        <FaTrashAlt />
+                      </button>
+                    ) : null}
                   </td>
                 </tr>
               ))}

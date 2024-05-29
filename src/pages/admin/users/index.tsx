@@ -113,8 +113,8 @@ const CustomersDashboard = () => {
       setEditUser({
         ...user,
         username: data.data.user.username ?? "",
-        firstName: data.data.user.contact_name_family ?? "",
-        lastName: data.data.user.contact_name_given ?? "",
+        firstName: data.data.user.contact_name_given ?? "",
+        lastName: data.data.user.contact_name_family ?? "",
         fullName: data.data.user.contact_name ?? "",
         email: data.data.user.user_email ?? "",
         password: "",
@@ -187,7 +187,6 @@ const CustomersDashboard = () => {
           ]);
           toast("The user created successfully", { type: "success" });
         } else {
-          console.log(response.status, response.ok);
           const errorData = await response.json();
           toast(errorData.msg, { type: "warning" });
         }
@@ -263,6 +262,7 @@ const CustomersDashboard = () => {
             domain: ".pbx1.cloudtalk.ca",
           },
         ]);
+        toast.success("Successed Updated", { type: "success" });
         setIsEditModalOpen(false);
       } catch (e) {
         toast("Fetch error", { type: "warning" });
@@ -328,7 +328,6 @@ const CustomersDashboard = () => {
   }, [userData.token]);
 
   const handleViewUser = async (index: number) => {
-    console.log(index, userIds);
     try {
       const response = await fetch(
         `${base_url}/admin/user_read/${userIds[index]}`,
@@ -436,6 +435,7 @@ const CustomersDashboard = () => {
                   </button>
                 </div>
                 <Table
+                  tableType="user"
                   searchTerm={searchTerm}
                   headerItems={[
                     "User Name",

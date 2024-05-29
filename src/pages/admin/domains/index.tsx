@@ -1,8 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
 import { ToastContainer, toast } from "react-toastify";
-import Sidebar, {
-  SidebarMenuItemProps,
-} from "../../../components/advanced/layouts/Sidebar";
 import Modal from "../../../components/base/Modal";
 import Table from "../../../components/base/Table";
 import Footer from "../../../components/layouts/footer";
@@ -14,89 +11,39 @@ import { useAppStore } from "../../../lib/zustand/store";
 
 import { AiOutlineSearch } from "react-icons/ai";
 import { BsPlusLg } from "react-icons/bs";
-import { FaHatWizard, FaUserGroup } from "react-icons/fa6";
-
 interface TableItemProps {
-  username: string;
-  fullName: string;
-  role: string;
-  domain: string;
-  api: string;
-}
-
-interface InputRowProps {
-  username: string;
-  firstName: string;
-  lastName: string;
-  fullName?: string;
-  email?: string;
-  password?: string;
-  confirm_password?: string;
-  role: string;
-  domain: string;
-  api?: string;
+  domain_name: string;
+  domain_description: string;
+  status: boolean;
 }
 
 const DomainsDashboard = () => {
   const { userData } = useAppStore();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [roles, setRoles] = useState<Array<{ name: string; id: string }>>([]);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-  const [inputRows, setInputRows] = useState<Array<InputRowProps>>([
+  const [inputRows, setInputRows] = useState<Array<TableItemProps>>([
     {
-      username: "",
-      firstName: "",
-      lastName: "",
-      fullName: "",
-      email: "",
-      password: "",
-      confirm_password: "",
-      role: "",
-      domain: ".pbx1.cloudtalk.ca",
+      domain_name: "",
+      domain_description: "",
+      status: true,
     },
   ]);
-  const [editUser, setEditUser] = useState<InputRowProps | null>(null);
-  const [viewUser, setViewUser] = useState<InputRowProps | null>(null);
+  const [editDomain, setEditDomain] = useState<TableItemProps | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
-  const sidebarMenus: Array<SidebarMenuItemProps> = [
-    {
-      icon: <FaUserGroup />,
-      label: "User List",
-      subSidebarMenus: ["Users with Extensions", "Unassigned Extensions"],
-    },
-    {
-      icon: <FaHatWizard />,
-      label: "Wizard for Extensions",
-    },
-  ];
-
   const [selectedItemIndex, setSelectedItemIndex] = useState(0);
-  const [userIds, setUserIds] = useState<Array<string>>([]);
+  const [domainIds, setDomainIds] = useState<Array<string>>([]);
   const [tableItems, setTableItems] = useState<Array<TableItemProps>>([]);
 
-  const onAddUser = (newUser: TableItemProps) => {
-    setTableItems((prevItems) => [...prevItems, newUser]);
+  const onAddDomain = (newDomain: TableItemProps) => {
+    setTableItems((prevItems) => [...prevItems, newDomain]);
   };
 
-  // const handleViewUser = async (index: number) => {
-  //   setViewUser({
-  //     username: "don3",
-  //     firstName: "",
-  //     lastName: "",
-  //     email: "",
-  //     role: "",
-  //     domain: "",
-  //   });
-  //   setIsViewModalOpen(true);
-  // };
-
-  const handleEditUser = async (index: number) => {
+  const handleEditDomain = async (index: number) => {
     try {
       const response = await fetch(
-        `${base_url}/admin/user_update/${userIds[index]}`,
+        `${base_url}/admin/domain_update/${domainIds[index]}`,
         {
           headers: {
             authorization: userData.token,
@@ -104,106 +51,67 @@ const DomainsDashboard = () => {
         }
       );
       const data = await response.json();
-      const user = tableItems[index];
-      setEditUser({
-        ...user,
-        username: data.data.user.username ?? "",
-        firstName: data.data.user.contact_name_family ?? "",
-        lastName: data.data.user.contact_name_given ?? "",
-        fullName: data.data.user.contact_name ?? "",
-        email: data.data.user.user_email ?? "",
-        password: "",
-        confirm_password: "",
-        role: data.data.user.group_uuids ?? "",
-        domain: data.data.user.domain_name ?? "",
+      const domain = tableItems[index];
+      console.log(data, "DDD");
+
+      setEditDomain({
+        ...domain,
+        domain_name: data.data.domain_name ?? "",
+        domain_description: data.data.domain_description ?? "",
       });
 
       setSelectedItemIndex(index);
       setIsEditModalOpen(true);
     } catch (e) {
-      toast("Can't found the selected user", { type: "warning" });
+      toast("Can't found the selected domain", { type: "warning" });
     }
   };
 
-  const handleAddUser = async () => {
+  const handleAddDomain = async () => {
     for (const row of inputRows) {
-      if (row.password !== row.confirm_password) {
-        toast("Password and confirm password are not match!", {
-          type: "warning",
-        });
-        return;
-      }
-
-      let newRole = roles.find((item) => item.id === row.role);
-      if (!newRole && roles.length) {
-        newRole = roles[0];
-      }
-
-      const newUser: any = {
-        username: row.username,
-        fullName: `${row.firstName} ${row.lastName}`,
-        role: newRole?.name || "",
-        domain: ".pbx1.cloudtalk.ca",
-        api: "9d*******34",
+      const newDomain: any = {
+        domain_name: row.domain_name,
+        domain_description: row.domain_description,
+        status: true,
       };
 
       try {
-        const response = await fetch(`${base_url}/admin/user_create`, {
+        const response = await fetch(`${base_url}/admin/domain_create`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             authorization: userData.token,
           },
-          body: JSON.stringify({
-            username: row.username,
-            firstName: row.firstName,
-            lastName: row.lastName,
-            email: row.email,
-            password: row.password,
-            group: row.role,
-          }),
+          body: JSON.stringify(newDomain),
         });
 
         if (response.ok) {
-          onAddUser(newUser);
+          onAddDomain(newDomain);
           setIsModalOpen(false);
           setInputRows([
             {
-              username: "",
-              firstName: "",
-              lastName: "",
-              fullName: "",
-              email: "",
-              password: "",
-              confirm_password: "",
-              role: roles[0].id,
-              domain: ".pbx1.cloudtalk.ca",
+              domain_name: "",
+              domain_description: "",
+              status: true,
             },
           ]);
-          toast("The user created successfully", { type: "success" });
+          toast("The domain created successfully", { type: "success" });
         } else {
           console.log(response.status, response.ok);
           const errorData = await response.json();
           toast(errorData.msg, { type: "warning" });
         }
       } catch (error) {
-        console.error("Error creating user:", error);
+        console.error("Error creating domain:", error);
       }
     }
   };
 
-  const handleUpdateUser = async () => {
-    if (editUser) {
-      if (editUser.password !== editUser.confirm_password) {
-        toast("Password and confirm password are not match!", {
-          type: "warning",
-        });
-        return;
-      }
-
+  const handleUpdateDomain = async () => {
+    if (editDomain) {
       try {
         const response = await fetch(
-          `${base_url}/admin/user_update/${userIds[selectedItemIndex]}`,
+          `${base_url}/admin/domain_update/${domainIds[selectedItemIndex]}`,
           {
             method: "PUT",
             headers: {
@@ -211,15 +119,8 @@ const DomainsDashboard = () => {
               authorization: userData.token,
             },
             body: JSON.stringify({
-              username: editUser.username,
-              firstName: editUser.firstName,
-              lastName: editUser.lastName,
-              fullName: `${editUser.firstName} ${editUser.lastName}`,
-              email: editUser.email,
-              password: editUser.password,
-              group: editUser.role,
-              domain: editUser.domain,
-              api: editUser.api as string,
+              domain_name: editDomain.domain_name,
+              domain_description: editDomain.domain_description,
             }),
           }
         );
@@ -229,35 +130,23 @@ const DomainsDashboard = () => {
           return;
         }
 
-        let newRole: string = "";
-        roles.map((role) => {
-          if (role.id === editUser.role) newRole = role.name;
-        });
-
-        const updatedUser: TableItemProps = {
-          username: editUser.username,
-          fullName: `${editUser.firstName} ${editUser.lastName}`,
-          role: newRole,
-          domain: editUser.domain,
-          api: editUser.api as string,
+        const updatedDomain: TableItemProps = {
+          domain_name: editDomain.domain_name,
+          domain_description: editDomain.domain_description,
+          status: true,
         };
-        const updatedUsers = tableItems.map((user, i) =>
-          selectedItemIndex === i ? updatedUser : user
+        const updatedDomains = tableItems.map((domain, i) =>
+          selectedItemIndex === i ? updatedDomain : domain
         );
-        setTableItems(updatedUsers);
+        setTableItems(updatedDomains);
         setInputRows([
           {
-            username: "",
-            firstName: "",
-            lastName: "",
-            fullName: "",
-            email: "",
-            password: "",
-            confirm_password: "",
-            role: "",
-            domain: ".pbx1.cloudtalk.ca",
+            domain_name: "",
+            domain_description: "",
+            status: true,
           },
         ]);
+        toast.success("Successed Updated", { type: "success" });
         setIsEditModalOpen(false);
       } catch (e) {
         toast("Fetch error", { type: "warning" });
@@ -276,27 +165,9 @@ const DomainsDashboard = () => {
     setInputRows(rows);
   };
 
-  const fetchRoleResponse = useCallback(async () => {
-    const response = await fetch(`${base_url}/admin/user_create`, {
-      headers: {
-        authorization: userData.token,
-      },
-    });
-    const data = await response.json();
-    const roleItems: Array<{ name: string; id: string }> = [];
-    for (let i = 0; i < data.data.length; i++) {
-      roleItems.push({
-        name: data.data[i].group_name,
-        id: data.data[i].group_uuid,
-      });
-    }
-
-    setRoles(roleItems);
-  }, [userData.token]);
-
-  const fetchUserList = useCallback(async () => {
+  const fetchDomainList = useCallback(async () => {
     try {
-      const response = await fetch(`${base_url}/admin/user_list`, {
+      const response = await fetch(`${base_url}/admin/domain_list`, {
         headers: {
           authorization: userData.token,
         },
@@ -304,81 +175,29 @@ const DomainsDashboard = () => {
       if (response.ok) {
         const data = await response.json();
 
-        const userIdData = data.data.users.map((user: any) => user.user_uuid);
-        const users: TableItemProps[] = data.data.users.map((user: any) => ({
-          username: user.username,
-          fullName: user.contact_name,
-          role: user.group_names,
-          domain: user.domain_name,
-          api: "",
-        }));
-        setUserIds(userIdData);
-        setTableItems(users);
+        const userIdDomain = data.data.domains.map(
+          (domain: any) => domain.domain_uuid
+        );
+        const domains: TableItemProps[] = data.data.domains.map(
+          (domain: any) => ({
+            domain_name: domain.domain_name,
+            domain_description: domain.domain_description,
+            status: domain.domain_enabled,
+          })
+        );
+        setDomainIds(userIdDomain);
+        setTableItems(domains);
       } else {
-        console.error("Failed to fetch users:", response.statusText);
+        console.error("Failed to fetch domains:", response.statusText);
       }
     } catch (error) {
-      console.error("Error fetching users:", error);
+      console.error("Error fetching domains:", error);
     }
   }, [userData.token]);
 
-  const handleViewUser = async (index: number) => {
-    try {
-      const response = await fetch(
-        `${base_url}/admin/user_read/${userIds[index]}`,
-        {
-          headers: {
-            authorization: userData.token,
-          },
-        }
-      );
-      if (response.ok) {
-        const data = await response.json();
-        setViewUser({
-          username: data.data.username,
-          firstName: data.data.contact_name_given,
-          lastName: data.data.contact_name_family,
-          email: data.data.user_email,
-          role: data.data.group_names,
-          domain: data.data.domain_name,
-        });
-        setIsViewModalOpen(true);
-      } else {
-        console.error("Failed to fetch user details:", response.statusText);
-      }
-    } catch (error) {
-      console.error("Error fetching user details:", error);
-    }
-  };
-
-  const handleDeleteUser = async (index: number) => {
-    try {
-      const response = await fetch(
-        `${base_url}/admin/user_delete/${userIds[index]}`,
-        {
-          method: "DELETE",
-          headers: {
-            authorization: userData.token,
-          },
-        }
-      );
-      if (response.ok) {
-        toast.success("Deleted Successfully");
-
-        const updatedUsers = tableItems.filter((_, i) => i !== index);
-        setTableItems(updatedUsers);
-      } else {
-        toast.error("Failed to Delete");
-      }
-    } catch (error) {
-      console.error("Error fetching user details:", error);
-    }
-  };
-
   useEffect(() => {
-    fetchRoleResponse();
-    fetchUserList();
-  }, [fetchRoleResponse, fetchUserList]);
+    fetchDomainList();
+  }, [fetchDomainList]);
 
   return (
     <>
@@ -387,7 +206,6 @@ const DomainsDashboard = () => {
         <Header />
         <main className="flex-1 py-8">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex gap-4 h-full">
-            <Sidebar sidebarMenus={sidebarMenus} />
             <div className="flex-1">
               <div className="w-full bg-white rounded-md shadow-md">
                 <div className="flex justify-between items-center p-4">
@@ -416,12 +234,11 @@ const DomainsDashboard = () => {
                   </button>
                 </div>
                 <Table
+                  tableType="domain"
                   searchTerm={searchTerm}
-                  headerItems={["Domain Name", "Domain Description", "Enabled"]}
+                  headerItems={["Domain Name", "Domain Description", "Status"]}
                   tableItems={tableItems}
-                  onViewUser={handleViewUser}
-                  onEditUser={handleEditUser}
-                  onDeleteUser={handleDeleteUser}
+                  onEditUser={handleEditDomain}
                 />
                 <Modal
                   width="w-[1100px]"
@@ -430,25 +247,25 @@ const DomainsDashboard = () => {
                 >
                   <div>
                     <h2 className="text-xl text-gray-500 mb-4 bg-gray-100 border-b-2 border-gray-300 p-4 text-center">
-                      Add User
+                      Add Domain
                     </h2>
                     <div className="p-6 space-y-6">
                       {inputRows.map((row, index) => (
-                        <div key={index} className="grid grid-cols-4 gap-4">
+                        <div key={index} className="grid grid-cols-2 gap-4">
                           <div>
                             {index === 0 && (
                               <label className="block text-sm font-medium text-gray-700">
-                                User Name
+                                Domain Name
                               </label>
                             )}
                             <input
                               type="text"
                               className="mt-1 p-2 border rounded-lg w-full"
-                              value={row.username}
+                              value={row.domain_name}
                               onChange={(e) =>
                                 updateInputRow(
                                   index,
-                                  "username",
+                                  "domain_name",
                                   e.target.value
                                 )
                               }
@@ -457,131 +274,21 @@ const DomainsDashboard = () => {
                           <div>
                             {index === 0 && (
                               <label className="block text-sm font-medium text-gray-700">
-                                First Name
+                                Domain Description
                               </label>
                             )}
                             <input
                               type="text"
                               className="mt-1 p-2 border rounded-lg w-full"
-                              value={row.firstName}
+                              value={row.domain_description}
                               onChange={(e) =>
                                 updateInputRow(
                                   index,
-                                  "firstName",
+                                  "domain_description",
                                   e.target.value
                                 )
                               }
                             />
-                          </div>
-                          <div>
-                            {index === 0 && (
-                              <label className="block text-sm font-medium text-gray-700">
-                                Last Name
-                              </label>
-                            )}
-                            <input
-                              type="text"
-                              className="mt-1 p-2 border rounded-lg w-full"
-                              value={row.lastName}
-                              onChange={(e) =>
-                                updateInputRow(
-                                  index,
-                                  "lastName",
-                                  e.target.value
-                                )
-                              }
-                            />
-                          </div>
-                          <div>
-                            {index === 0 && (
-                              <label className="block text-sm font-medium text-gray-700">
-                                Email
-                              </label>
-                            )}
-                            <input
-                              type="text"
-                              className="mt-1 p-2 border rounded-lg w-full"
-                              value={row.email}
-                              onChange={(e) =>
-                                updateInputRow(index, "email", e.target.value)
-                              }
-                            />
-                          </div>
-                          <div>
-                            {index === 0 && (
-                              <label className="block text-sm font-medium text-gray-700">
-                                Password
-                              </label>
-                            )}
-                            <input
-                              type="password"
-                              className="mt-1 p-2 border rounded-lg w-full"
-                              value={row.password}
-                              onChange={(e) =>
-                                updateInputRow(
-                                  index,
-                                  "password",
-                                  e.target.value
-                                )
-                              }
-                            />
-                          </div>
-                          <div>
-                            {index === 0 && (
-                              <label className="block text-sm font-medium text-gray-700">
-                                Confirm Password
-                              </label>
-                            )}
-                            <input
-                              type="password"
-                              className="mt-1 p-2 border rounded-lg w-full"
-                              value={row.confirm_password}
-                              onChange={(e) =>
-                                updateInputRow(
-                                  index,
-                                  "confirm_password",
-                                  e.target.value
-                                )
-                              }
-                            />
-                          </div>
-                          <div className="text-sm">
-                            {index === 0 && (
-                              <label className="block text-sm font-medium text-gray-700">
-                                Role
-                              </label>
-                            )}
-                            <select
-                              className="mt-1 p-2 border rounded-lg w-full"
-                              value={row.role}
-                              onChange={(e) =>
-                                updateInputRow(index, "role", e.target.value)
-                              }
-                            >
-                              {roles.map((item, index) => (
-                                <option key={index} value={item.id}>
-                                  {item.name}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                          <div className="text-sm">
-                            {index === 0 && (
-                              <label className="block text-sm font-medium text-gray-700">
-                                Domain
-                              </label>
-                            )}
-                            <select
-                              className="mt-1 p-2 border rounded-lg w-full"
-                              value={row.domain}
-                              onChange={(e) =>
-                                updateInputRow(index, "domain", e.target.value)
-                              }
-                            >
-                              <option value=".pbx1.cloudtalk.ca">
-                                .pbx1.cloudtalk.ca
-                              </option>
-                            </select>
                           </div>
                         </div>
                       ))}
@@ -592,15 +299,9 @@ const DomainsDashboard = () => {
                         onClick={() => {
                           setInputRows([
                             {
-                              username: "",
-                              firstName: "",
-                              lastName: "",
-                              fullName: "",
-                              email: "",
-                              password: "",
-                              confirm_password: "",
-                              role: "",
-                              domain: ".pbx1.cloudtalk.ca",
+                              domain_name: "",
+                              domain_description: "",
+                              status: true,
                             },
                           ]);
                           setIsModalOpen(false);
@@ -610,14 +311,14 @@ const DomainsDashboard = () => {
                       </button>
                       <button
                         className="px-6 py-2 bg-blue-600 text-white rounded-lg"
-                        onClick={handleAddUser}
+                        onClick={handleAddDomain}
                       >
                         OK
                       </button>
                     </div>
                   </div>
                 </Modal>
-                {editUser && (
+                {editDomain && (
                   <Modal
                     width="w-[1100px]"
                     isOpen={isEditModalOpen}
@@ -625,231 +326,57 @@ const DomainsDashboard = () => {
                   >
                     <div>
                       <h2 className="text-xl text-gray-500 mb-4 bg-gray-100 border-b-2 border-gray-300 p-4 text-center">
-                        Edit User
+                        Edit Domain
                       </h2>
                       <div className="p-6 space-y-6">
-                        <div className="grid grid-cols-4 gap-4">
+                        <div className="grid grid-cols-2 gap-4">
                           <div>
                             <label className="block text-sm font-medium text-gray-700">
-                              User Name
+                              Domain Name
                             </label>
                             <input
                               type="text"
                               className="mt-1 p-2 border rounded-lg w-full"
-                              value={editUser.username}
+                              value={editDomain.domain_name}
                               onChange={(e) =>
-                                setEditUser({
-                                  ...editUser,
-                                  username: e.target.value,
+                                setEditDomain({
+                                  ...editDomain,
+                                  domain_name: e.target.value,
                                 })
                               }
                             />
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-700">
-                              First Name
+                              Domain Description
                             </label>
                             <input
                               type="text"
                               className="mt-1 p-2 border rounded-lg w-full"
-                              value={editUser.firstName}
+                              value={editDomain.domain_description}
                               onChange={(e) =>
-                                setEditUser({
-                                  ...editUser,
-                                  firstName: e.target.value,
-                                })
-                              }
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700">
-                              Last Name
-                            </label>
-                            <input
-                              type="text"
-                              className="mt-1 p-2 border rounded-lg w-full"
-                              value={editUser.lastName}
-                              onChange={(e) =>
-                                setEditUser({
-                                  ...editUser,
-                                  lastName: e.target.value,
-                                })
-                              }
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700">
-                              Email
-                            </label>
-                            <input
-                              type="text"
-                              className="mt-1 p-2 border rounded-lg w-full"
-                              value={editUser.email}
-                              onChange={(e) =>
-                                setEditUser({
-                                  ...editUser,
-                                  email: e.target.value,
-                                })
-                              }
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700">
-                              Password
-                            </label>
-                            <input
-                              type="password"
-                              className="mt-1 p-2 border rounded-lg w-full"
-                              value={editUser.password}
-                              onChange={(e) =>
-                                setEditUser({
-                                  ...editUser,
-                                  password: e.target.value,
-                                })
-                              }
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700">
-                              Confirm Password
-                            </label>
-                            <input
-                              type="password"
-                              className="mt-1 p-2 border rounded-lg w-full"
-                              value={editUser.confirm_password}
-                              onChange={(e) =>
-                                setEditUser({
-                                  ...editUser,
-                                  confirm_password: e.target.value,
-                                })
-                              }
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700">
-                              Role
-                            </label>
-                            <select
-                              className="mt-1 p-2 border rounded-lg w-full"
-                              value={editUser.role}
-                              onChange={(e) =>
-                                setEditUser({
-                                  ...editUser,
-                                  role: e.target.value,
-                                })
-                              }
-                            >
-                              {roles.map((item, index) => (
-                                <option key={index} value={item.id}>
-                                  {item.name}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700">
-                              Domain
-                            </label>
-                            <input
-                              className="mt-1 p-2 border rounded-lg w-full"
-                              value={editUser.domain}
-                              onChange={(e) =>
-                                setEditUser({
-                                  ...editUser,
-                                  domain: e.target
-                                    .value as ".pbx1.cloudtalk.ca",
+                                setEditDomain({
+                                  ...editDomain,
+                                  domain_description: e.target.value,
                                 })
                               }
                             />
                           </div>
                         </div>
-                      </div>
-                      <div className="flex justify-end p-4 border-t border-gray-200">
-                        <button
-                          className="px-4 py-2 mr-2 bg-gray-300 rounded-lg"
-                          onClick={() => setIsEditModalOpen(false)}
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          className="px-6 py-2 bg-blue-600 text-white rounded-lg"
-                          onClick={handleUpdateUser}
-                        >
-                          Update
-                        </button>
-                      </div>
-                    </div>
-                  </Modal>
-                )}
-                {viewUser && (
-                  <Modal
-                    width="w-[1100px]"
-                    isOpen={isViewModalOpen}
-                    onClose={() => setIsViewModalOpen(false)}
-                  >
-                    <div>
-                      <h2 className="text-xl text-gray-500 mb-4 bg-gray-100 border-b-2 border-gray-300 p-4 text-center">
-                        View User
-                      </h2>
-                      <div className="p-6 space-y-6">
-                        <div className="grid grid-cols-4 gap-4">
-                          <div>
-                            <label className="block text-xs font-medium text-gray-500">
-                              User Name
-                            </label>
-                            <p className="p-2 text-xl w-full">
-                              {viewUser.username}
-                            </p>
-                          </div>
-                          <div>
-                            <label className="block text-xs font-medium text-gray-500">
-                              First Name
-                            </label>
-                            <p className="p-2 text-xl w-full">
-                              {viewUser.firstName}
-                            </p>
-                          </div>
-                          <div>
-                            <label className="block text-xs font-medium text-gray-500">
-                              Last Name
-                            </label>
-                            <p className="p-2 text-xl w-full">
-                              {viewUser.lastName}
-                            </p>
-                          </div>
-                          <div>
-                            <label className="block text-xs font-medium text-gray-500">
-                              Email
-                            </label>
-                            <p className="p-2 text-xl w-full">
-                              {viewUser.email}
-                            </p>
-                          </div>
-                          <div>
-                            <label className="block text-xs font-medium text-gray-500">
-                              Role
-                            </label>
-                            <p className="p-2 text-xl w-full">
-                              {viewUser.role}
-                            </p>
-                          </div>
-                          <div>
-                            <label className="block text-xs font-medium text-gray-500">
-                              Domain
-                            </label>
-                            <p className="p-2 text-xl w-full">
-                              {viewUser.domain}
-                            </p>
-                          </div>
+                        <div className="flex justify-end p-4 border-t border-gray-200">
+                          <button
+                            className="px-4 py-2 mr-2 bg-gray-300 rounded-lg"
+                            onClick={() => setIsEditModalOpen(false)}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            className="px-6 py-2 bg-blue-600 text-white rounded-lg"
+                            onClick={handleUpdateDomain}
+                          >
+                            Update
+                          </button>
                         </div>
-                      </div>
-                      <div className="flex justify-end p-4 border-t border-gray-200">
-                        <button
-                          className="px-6 py-2 bg-blue-600 text-white rounded-lg"
-                          onClick={() => setIsViewModalOpen(false)}
-                        >
-                          OK
-                        </button>
                       </div>
                     </div>
                   </Modal>
