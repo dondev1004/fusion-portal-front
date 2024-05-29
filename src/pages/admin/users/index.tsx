@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from "react";
-import "react-confirm-alert/src/react-confirm-alert.css";
 import { ToastContainer, toast } from "react-toastify";
 
 import ConfirmModal from "../../../components/base/ConfrimModal";
@@ -66,6 +65,11 @@ const CustomersDashboard = () => {
   const [viewUser, setViewUser] = useState<InputRowProps | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
+  const [totalPages, setTotalPages] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalCount, setTotalCount] = useState(0);
+
   const sidebarMenus: Array<SidebarMenuItemProps> = [
     {
       icon: <FaUserGroup />,
@@ -84,6 +88,17 @@ const CustomersDashboard = () => {
 
   const onAddUser = (newUser: TableItemProps) => {
     setTableItems((prevItems) => [...prevItems, newUser]);
+  };
+
+  const handlePageIndexChange = async (index: number) => {
+    setCurrentPage(index);
+    await fetchUserList(index, pageSize);
+  };
+
+  const handlePageSizeChange = async (newPageSize: number) => {
+    setPageSize(newPageSize);
+    setCurrentPage(1);
+    await fetchUserList(1, newPageSize);
   };
 
   // const handleViewUser = async (index: number) => {
@@ -299,33 +314,43 @@ const CustomersDashboard = () => {
     setRoles(roleItems);
   }, [userData.token]);
 
-  const fetchUserList = useCallback(async () => {
-    try {
-      const response = await fetch(`${base_url}/admin/user_list`, {
-        headers: {
-          authorization: userData.token,
-        },
-      });
-      if (response.ok) {
-        const data = await response.json();
-
-        const userIdData = data.data.users.map((user: any) => user.user_uuid);
-        const users: TableItemProps[] = data.data.users.map((user: any) => ({
-          username: user.username,
-          fullName: user.contact_name,
-          role: user.group_names,
-          domain: user.domain_name,
-          api: "",
-        }));
-        setUserIds(userIdData);
-        setTableItems(users);
-      } else {
-        console.error("Failed to fetch users:", response.statusText);
+  const fetchUserList = useCallback(
+    async (page?: number, count?: number) => {
+      try {
+        const response = await fetch(
+          `${base_url}/admin/user_list?page=${page ?? currentPage}&pageSize=${
+            count ?? pageSize
+          }`,
+          {
+            headers: {
+              authorization: userData.token,
+            },
+          }
+        );
+        if (response.ok) {
+          const data = await response.json();
+          console.log(data);
+          const userIdData = data.data.users.map((user: any) => user.user_uuid);
+          const users: TableItemProps[] = data.data.users.map((user: any) => ({
+            username: user.username,
+            fullName: user.contact_name,
+            role: user.group_names,
+            domain: user.domain_name,
+            api: "",
+          }));
+          setUserIds(userIdData);
+          setTableItems(users);
+          setTotalPages(data.data.totalPages);
+          setTotalCount(data.data.totalCount);
+        } else {
+          console.error("Failed to fetch users:", response.statusText);
+        }
+      } catch (error) {
+        console.error("Error fetching users:", error);
       }
-    } catch (error) {
-      console.error("Error fetching users:", error);
-    }
-  }, [userData.token]);
+    },
+    [userData.token]
+  );
 
   const handleViewUser = async (index: number) => {
     try {
@@ -445,9 +470,15 @@ const CustomersDashboard = () => {
                     "API",
                   ]}
                   tableItems={tableItems}
+                  totalPages={totalPages}
+                  currentPage={currentPage}
+                  pageSize={pageSize}
+                  totalCount={totalCount}
                   onViewUser={handleViewUser}
                   onEditUser={handleEditUser}
                   onDeleteUser={handleDeleteUser}
+                  onPageIndexChange={handlePageIndexChange}
+                  onPageSizeChange={handlePageSizeChange}
                 />
                 <ConfirmModal
                   isOpen={confirmModalOpen}

@@ -32,12 +32,28 @@ const DomainsDashboard = () => {
   const [editDomain, setEditDomain] = useState<TableItemProps | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
+  const [totalPages, setTotalPages] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalCount, setTotalCount] = useState(0);
+
   const [selectedItemIndex, setSelectedItemIndex] = useState(0);
   const [domainIds, setDomainIds] = useState<Array<string>>([]);
   const [tableItems, setTableItems] = useState<Array<TableItemProps>>([]);
 
   const onAddDomain = (newDomain: TableItemProps) => {
     setTableItems((prevItems) => [...prevItems, newDomain]);
+  };
+
+  const handlePageIndexChange = async (index: number) => {
+    setCurrentPage(index);
+    await fetchDomainList(index, pageSize);
+  };
+
+  const handlePageSizeChange = async (newPageSize: number) => {
+    setPageSize(newPageSize);
+    setCurrentPage(1);
+    await fetchDomainList(1, newPageSize);
   };
 
   const handleEditDomain = async (index: number) => {
@@ -165,35 +181,45 @@ const DomainsDashboard = () => {
     setInputRows(rows);
   };
 
-  const fetchDomainList = useCallback(async () => {
-    try {
-      const response = await fetch(`${base_url}/admin/domain_list`, {
-        headers: {
-          authorization: userData.token,
-        },
-      });
-      if (response.ok) {
-        const data = await response.json();
+  const fetchDomainList = useCallback(
+    async (page?: number, count?: number) => {
+      try {
+        const response = await fetch(
+          `${base_url}/admin/domain_list?page=${page ?? currentPage}&pageSize=${
+            count ?? pageSize
+          }`,
+          {
+            headers: {
+              authorization: userData.token,
+            },
+          }
+        );
+        if (response.ok) {
+          const data = await response.json();
 
-        const userIdDomain = data.data.domains.map(
-          (domain: any) => domain.domain_uuid
-        );
-        const domains: TableItemProps[] = data.data.domains.map(
-          (domain: any) => ({
-            domain_name: domain.domain_name,
-            domain_description: domain.domain_description,
-            status: domain.domain_enabled,
-          })
-        );
-        setDomainIds(userIdDomain);
-        setTableItems(domains);
-      } else {
-        console.error("Failed to fetch domains:", response.statusText);
+          const userIdDomain = data.data.domains.map(
+            (domain: any) => domain.domain_uuid
+          );
+          const domains: TableItemProps[] = data.data.domains.map(
+            (domain: any) => ({
+              domain_name: domain.domain_name,
+              domain_description: domain.domain_description,
+              status: domain.domain_enabled,
+            })
+          );
+          setDomainIds(userIdDomain);
+          setTableItems(domains);
+          setTotalPages(data.data.totalPages);
+          setTotalCount(data.data.totalCount);
+        } else {
+          console.error("Failed to fetch domains:", response.statusText);
+        }
+      } catch (error) {
+        console.error("Error fetching domains:", error);
       }
-    } catch (error) {
-      console.error("Error fetching domains:", error);
-    }
-  }, [userData.token]);
+    },
+    [userData.token]
+  );
 
   useEffect(() => {
     fetchDomainList();
@@ -238,7 +264,13 @@ const DomainsDashboard = () => {
                   searchTerm={searchTerm}
                   headerItems={["Domain Name", "Domain Description", "Status"]}
                   tableItems={tableItems}
+                  totalPages={totalPages}
+                  currentPage={currentPage}
+                  pageSize={pageSize}
+                  totalCount={totalCount}
                   onEditUser={handleEditDomain}
+                  onPageIndexChange={handlePageIndexChange}
+                  onPageSizeChange={handlePageSizeChange}
                 />
                 <Modal
                   width="w-[1100px]"

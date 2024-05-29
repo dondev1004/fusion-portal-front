@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { FaEdit, FaTrashAlt } from "react-icons/fa";
 import { FcCancel, FcCheckmark } from "react-icons/fc";
 
@@ -7,9 +7,15 @@ export interface TableProps {
   searchTerm: string;
   headerItems: Array<string>;
   tableItems: Array<any>;
+  totalPages: number;
+  currentPage: number;
+  pageSize: number;
+  totalCount: number;
   onViewUser?: (index: number) => Promise<void>;
   onEditUser: (index: number) => Promise<void>;
   onDeleteUser?: (index: number) => Promise<void>;
+  onPageIndexChange: (index: number) => Promise<void>;
+  onPageSizeChange: (newPageSize: number) => Promise<void>;
 }
 
 const Table: React.FC<TableProps> = ({
@@ -17,37 +23,28 @@ const Table: React.FC<TableProps> = ({
   searchTerm,
   headerItems,
   tableItems,
+  totalPages,
+  currentPage,
+  pageSize,
+  totalCount,
   onViewUser,
   onEditUser,
   onDeleteUser,
+  onPageIndexChange,
+  onPageSizeChange,
 }) => {
-  const [currentPage, setCurrentPage] = useState(1);
-
-  const itemsPerPage = 10; // Number of items per page
-  const totalPages = Math.ceil(tableItems.length / itemsPerPage);
-
-  const filteredItems =
-    tableType === "user"
-      ? tableItems.filter(
-          (item) =>
-            item.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            item.domain.toLowerCase().includes(searchTerm.toLowerCase())
-        )
-      : tableType === "domain"
-      ? tableItems.filter((item) =>
-          item.domain_name.toLowerCase().includes(searchTerm.toLowerCase())
-        )
-      : [];
-
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedItems = filteredItems.slice(
-    startIndex,
-    startIndex + itemsPerPage
-  );
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-  };
+  // const filteredItems =
+  //   tableType === "user"
+  //     ? tableItems.filter(
+  //         (item) =>
+  //           item.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  //           item.domain.toLowerCase().includes(searchTerm.toLowerCase())
+  //       )
+  //     : tableType === "domain"
+  //     ? tableItems.filter((item) =>
+  //         item.domain_name.toLowerCase().includes(searchTerm.toLowerCase())
+  //       )
+  //     : [];
 
   return (
     <div className="flex flex-col overflow-auto border shadow-lg bg-white">
@@ -74,7 +71,7 @@ const Table: React.FC<TableProps> = ({
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200 text-14">
-              {paginatedItems.map((item, index) => (
+              {tableItems.map((item, index) => (
                 <tr
                   className="bg-white hover:bg-gray-100 cursor-pointer duration-150"
                   key={index}
@@ -126,14 +123,14 @@ const Table: React.FC<TableProps> = ({
         <div className="bg-gray-50 px-4 py-3 border-t flex items-center justify-between sm:px-6">
           <div className="flex-1 flex justify-between sm:hidden">
             <button
-              onClick={() => handlePageChange(currentPage - 1)}
+              onClick={() => onPageIndexChange(currentPage - 1)}
               disabled={currentPage === 1}
               className="px-4 py-2 border rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
             >
               Previous
             </button>
             <button
-              onClick={() => handlePageChange(currentPage + 1)}
+              onClick={() => onPageIndexChange(currentPage + 1)}
               disabled={currentPage === totalPages}
               className="px-4 py-2 ml-3 border rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
             >
@@ -145,17 +142,30 @@ const Table: React.FC<TableProps> = ({
               <p className="text-sm text-gray-700">
                 Showing{" "}
                 <span className="font-medium">
-                  {startIndex + 1}-
-                  {Math.min(startIndex + itemsPerPage, filteredItems.length)}
+                  {pageSize * (currentPage - 1) + 1} -{" "}
+                  {pageSize * (currentPage - 1) + 1 + pageSize > totalCount
+                    ? totalCount
+                    : pageSize * (currentPage - 1) + pageSize}
                 </span>{" "}
-                of <span className="font-medium">{filteredItems.length}</span>{" "}
-                results
+                of <span className="font-medium">{[totalCount]}</span> results
               </p>
             </div>
-            <div>
+            <div className="flex gap-4">
+              <select
+                name="pageSize"
+                id="pageSize"
+                className="border rounded-md px-2 py-1"
+                defaultValue="10"
+                onChange={(e) => onPageSizeChange(parseInt(e.target.value))}
+              >
+                <option value="5">5</option>
+                <option value="10">10</option>
+                <option value="20">20</option>
+                <option value="50">50</option>
+              </select>
               <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
                 <button
-                  onClick={() => handlePageChange(currentPage - 1)}
+                  onClick={() => onPageIndexChange(currentPage - 1)}
                   disabled={currentPage === 1}
                   className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
                 >
@@ -164,18 +174,18 @@ const Table: React.FC<TableProps> = ({
                 {Array.from({ length: totalPages }, (_, index) => (
                   <button
                     key={index + 1}
-                    onClick={() => handlePageChange(index + 1)}
-                    className={`relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 ${
+                    onClick={() => onPageIndexChange(index + 1)}
+                    className={`relative inline-flex items-center px-4 py-2 border border-gray-300  text-sm font-medium duration-150 ${
                       currentPage === index + 1
-                        ? "bg-blue-100 text-blue-600"
-                        : ""
+                        ? "bg-blue-500 text-white hover:bg-blue-300"
+                        : "bg-white text-gray-500 hover:bg-gray-50"
                     }`}
                   >
                     {index + 1}
                   </button>
                 ))}
                 <button
-                  onClick={() => handlePageChange(currentPage + 1)}
+                  onClick={() => onPageIndexChange(currentPage + 1)}
                   disabled={currentPage === totalPages}
                   className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
                 >
