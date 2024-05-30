@@ -334,6 +334,7 @@ const CustomersDashboard = () => {
       },
     });
     const data = await response.json();
+    console.log(data, "from fetch method");
 
     const roleItems: Array<{ name: string; id: string }> = [];
     const domainItems: Array<{ name: string; id: string }> = [];
