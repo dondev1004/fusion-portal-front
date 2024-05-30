@@ -3,8 +3,6 @@ import { FaEdit, FaTrashAlt } from "react-icons/fa";
 import { FcCancel, FcCheckmark } from "react-icons/fc";
 
 export interface TableProps {
-  tableType: "user" | "domain";
-  searchTerm: string;
   headerItems: Array<string>;
   tableItems: Array<any>;
   totalPages: number;
@@ -19,8 +17,6 @@ export interface TableProps {
 }
 
 const Table: React.FC<TableProps> = ({
-  tableType,
-  searchTerm,
   headerItems,
   tableItems,
   totalPages,
@@ -33,19 +29,6 @@ const Table: React.FC<TableProps> = ({
   onPageIndexChange,
   onPageSizeChange,
 }) => {
-  // const filteredItems =
-  //   tableType === "user"
-  //     ? tableItems.filter(
-  //         (item) =>
-  //           item.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-  //           item.domain.toLowerCase().includes(searchTerm.toLowerCase())
-  //       )
-  //     : tableType === "domain"
-  //     ? tableItems.filter((item) =>
-  //         item.domain_name.toLowerCase().includes(searchTerm.toLowerCase())
-  //       )
-  //     : [];
-
   return (
     <div className="flex flex-col overflow-auto border shadow-lg bg-white">
       <div className="flex flex-col overflow-x-auto">
@@ -77,15 +60,30 @@ const Table: React.FC<TableProps> = ({
                   key={index}
                 >
                   {Object.values(item).map((objectItem, index2) => {
-                    if (typeof objectItem === "boolean")
+                    if (
+                      typeof objectItem === "boolean" ||
+                      objectItem === "true" ||
+                      objectItem === "false"
+                    ) {
                       return (
                         <td
                           className="px-6 py-3 whitespace-nowrap"
                           key={index2}
                         >
-                          {objectItem ? <FcCheckmark /> : <FcCancel />}
+                          {typeof objectItem === "boolean" ? (
+                            objectItem ? (
+                              <FcCheckmark />
+                            ) : (
+                              <FcCancel />
+                            )
+                          ) : objectItem === "true" ? (
+                            <FcCheckmark />
+                          ) : (
+                            <FcCancel />
+                          )}
                         </td>
                       );
+                    }
 
                     return (
                       <td

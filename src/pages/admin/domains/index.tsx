@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { ChangeEvent, useCallback, useEffect, useState } from "react";
 import { ToastContainer, toast } from "react-toastify";
 import Modal from "../../../components/base/Modal";
 import Table from "../../../components/base/Table";
@@ -54,6 +54,11 @@ const DomainsDashboard = () => {
     setPageSize(newPageSize);
     setCurrentPage(1);
     await fetchDomainList(1, newPageSize);
+  };
+
+  const handleSearchTermChange = async (e: ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+    fetchDomainList(currentPage, pageSize, e.target.value);
   };
 
   const handleEditDomain = async (index: number) => {
@@ -182,12 +187,12 @@ const DomainsDashboard = () => {
   };
 
   const fetchDomainList = useCallback(
-    async (page?: number, count?: number) => {
+    async (page?: number, count?: number, search?: string) => {
       try {
         const response = await fetch(
-          `${base_url}/admin/domain_list?page=${page ?? currentPage}&pageSize=${
-            count ?? pageSize
-          }`,
+          `${base_url}/admin/domain_list?search=${search ?? searchTerm}&page=${
+            page ?? currentPage
+          }&pageSize=${count ?? pageSize}`,
           {
             headers: {
               authorization: userData.token,
@@ -245,7 +250,7 @@ const DomainsDashboard = () => {
                       type="text"
                       placeholder="Search..."
                       value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
+                      onChange={handleSearchTermChange}
                       className="px-4 py-1 border focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                     <div className="bg-gray-200 text-gray-600 grid place-items-center px-2 border-gray-200 cursor-pointer">
@@ -260,8 +265,6 @@ const DomainsDashboard = () => {
                   </button>
                 </div>
                 <Table
-                  tableType="domain"
-                  searchTerm={searchTerm}
                   headerItems={["Domain Name", "Domain Description", "Status"]}
                   tableItems={tableItems}
                   totalPages={totalPages}

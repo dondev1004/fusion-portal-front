@@ -1,7 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
+import { ChangeEvent, useCallback, useEffect, useState } from "react";
 import { ToastContainer, toast } from "react-toastify";
-
-import ConfirmModal from "../../../components/base/ConfrimModal";
 
 import Sidebar, {
   SidebarMenuItemProps,
@@ -20,6 +18,7 @@ import { BsPlusLg } from "react-icons/bs";
 import { FaHatWizard, FaUserGroup } from "react-icons/fa6";
 
 interface TableItemProps {
+  status: boolean;
   username: string;
   fullName: string;
   role: string;
@@ -28,6 +27,7 @@ interface TableItemProps {
 }
 
 interface InputRowProps {
+  status?: boolean;
   username: string;
   firstName: string;
   lastName: string;
@@ -45,11 +45,15 @@ const CustomersDashboard = () => {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [roles, setRoles] = useState<Array<{ name: string; id: string }>>([]);
-  const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+  const [domains, setDomains] = useState<Array<{ name: string; id: string }>>(
+    []
+  );
+  // const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [inputRows, setInputRows] = useState<Array<InputRowProps>>([
     {
+      status: true,
       username: "",
       firstName: "",
       lastName: "",
@@ -58,7 +62,7 @@ const CustomersDashboard = () => {
       password: "",
       confirm_password: "",
       role: "",
-      domain: ".pbx1.cloudtalk.ca",
+      domain: "",
     },
   ]);
   const [editUser, setEditUser] = useState<InputRowProps | null>(null);
@@ -101,6 +105,11 @@ const CustomersDashboard = () => {
     await fetchUserList(1, newPageSize);
   };
 
+  const handleSearchTermChange = async (e: ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+    fetchUserList(currentPage, pageSize, e.target.value);
+  };
+
   // const handleViewUser = async (index: number) => {
   //   setViewUser({
   //     username: "don3",
@@ -135,7 +144,7 @@ const CustomersDashboard = () => {
         password: "",
         confirm_password: "",
         role: data.data.user.group_uuids ?? "",
-        domain: data.data.user.domain_name ?? "",
+        domain: data.data.user.domain_uuid ?? "",
       });
 
       setSelectedItemIndex(index);
@@ -159,11 +168,17 @@ const CustomersDashboard = () => {
         newRole = roles[0];
       }
 
+      let newDomain = domains.find((item) => item.id === row.domain);
+      if (!newDomain && domains.length) {
+        newDomain = domains[0];
+      }
+
       const newUser: any = {
+        status: row.status,
         username: row.username,
         fullName: `${row.firstName} ${row.lastName}`,
         role: newRole?.name || "",
-        domain: ".pbx1.cloudtalk.ca",
+        domain: newDomain?.name || "",
         api: "9d*******34",
       };
 
@@ -175,12 +190,14 @@ const CustomersDashboard = () => {
             authorization: userData.token,
           },
           body: JSON.stringify({
+            status: true,
             username: row.username,
             firstName: row.firstName,
             lastName: row.lastName,
             email: row.email,
             password: row.password,
             group: row.role,
+            domain: row.domain,
           }),
         });
 
@@ -189,6 +206,7 @@ const CustomersDashboard = () => {
           setIsModalOpen(false);
           setInputRows([
             {
+              status: true,
               username: "",
               firstName: "",
               lastName: "",
@@ -197,7 +215,7 @@ const CustomersDashboard = () => {
               password: "",
               confirm_password: "",
               role: roles[0].id,
-              domain: ".pbx1.cloudtalk.ca",
+              domain: domains[0].id,
             },
           ]);
           toast("The user created successfully", { type: "success" });
@@ -220,6 +238,8 @@ const CustomersDashboard = () => {
         return;
       }
 
+      console.log(editUser.domain);
+
       try {
         const response = await fetch(
           `${base_url}/admin/user_update/${userIds[selectedItemIndex]}`,
@@ -230,6 +250,7 @@ const CustomersDashboard = () => {
               authorization: userData.token,
             },
             body: JSON.stringify({
+              status: true,
               username: editUser.username,
               firstName: editUser.firstName,
               lastName: editUser.lastName,
@@ -253,11 +274,17 @@ const CustomersDashboard = () => {
           if (role.id === editUser.role) newRole = role.name;
         });
 
+        let newDomain: string = "";
+        domains.map((domain) => {
+          if (domain.id === editUser.domain) newDomain = domain.name;
+        });
+
         const updatedUser: TableItemProps = {
+          status: editUser.status as boolean,
           username: editUser.username,
           fullName: `${editUser.firstName} ${editUser.lastName}`,
           role: newRole,
-          domain: editUser.domain,
+          domain: newDomain,
           api: editUser.api as string,
         };
         const updatedUsers = tableItems.map((user, i) =>
@@ -266,6 +293,7 @@ const CustomersDashboard = () => {
         setTableItems(updatedUsers);
         setInputRows([
           {
+            status: true,
             username: "",
             firstName: "",
             lastName: "",
@@ -274,7 +302,7 @@ const CustomersDashboard = () => {
             password: "",
             confirm_password: "",
             role: "",
-            domain: ".pbx1.cloudtalk.ca",
+            domain: "",
           },
         ]);
         toast.success("Successed Updated", { type: "success" });
@@ -296,31 +324,39 @@ const CustomersDashboard = () => {
     setInputRows(rows);
   };
 
-  const fetchRoleResponse = useCallback(async () => {
+  const fetchRoleAndDomainResponse = useCallback(async () => {
     const response = await fetch(`${base_url}/admin/user_create`, {
       headers: {
         authorization: userData.token,
       },
     });
     const data = await response.json();
+
     const roleItems: Array<{ name: string; id: string }> = [];
-    for (let i = 0; i < data.data.length; i++) {
+    const domainItems: Array<{ name: string; id: string }> = [];
+    for (let i = 0; i < data.data.groups.length; i++) {
       roleItems.push({
-        name: data.data[i].group_name,
-        id: data.data[i].group_uuid,
+        name: data.data.groups[i].group_name,
+        id: data.data.groups[i].group_uuid,
+      });
+
+      domainItems.push({
+        name: data.data.domains[i].domain_name,
+        id: data.data.domains[i].domain_uuid,
       });
     }
 
     setRoles(roleItems);
+    setDomains(domainItems);
   }, [userData.token]);
 
   const fetchUserList = useCallback(
-    async (page?: number, count?: number) => {
+    async (page?: number, count?: number, search?: string) => {
       try {
         const response = await fetch(
-          `${base_url}/admin/user_list?page=${page ?? currentPage}&pageSize=${
-            count ?? pageSize
-          }`,
+          `${base_url}/admin/user_list?search=${search ?? searchTerm}&page=${
+            page ?? currentPage
+          }&pageSize=${count ?? pageSize}`,
           {
             headers: {
               authorization: userData.token,
@@ -332,6 +368,7 @@ const CustomersDashboard = () => {
           console.log(data);
           const userIdData = data.data.users.map((user: any) => user.user_uuid);
           const users: TableItemProps[] = data.data.users.map((user: any) => ({
+            status: user.user_enabled,
             username: user.username,
             fullName: user.contact_name,
             role: user.group_names,
@@ -381,48 +418,48 @@ const CustomersDashboard = () => {
     }
   };
 
-  const handleDeleteUser = async (index: number) => {
-    setSelectedItemIndex(index);
-    setConfirmModalOpen(true);
-  };
+  // const handleDeleteUser = async (index: number) => {
+  //   setSelectedItemIndex(index);
+  //   setConfirmModalOpen(true);
+  // };
 
-  const handleConfirmCancel = () => {
-    setConfirmModalOpen(false);
-  };
+  // const handleConfirmCancel = () => {
+  //   setConfirmModalOpen(false);
+  // };
 
-  const handleConfirm = async () => {
-    setConfirmModalOpen(false);
-    try {
-      const response = await fetch(
-        `${base_url}/admin/user_delete/${userIds[selectedItemIndex]}`,
-        {
-          method: "DELETE",
-          headers: {
-            authorization: userData.token,
-          },
-        }
-      );
+  // const handleConfirm = async () => {
+  //   setConfirmModalOpen(false);
+  //   try {
+  //     const response = await fetch(
+  //       `${base_url}/admin/user_delete/${userIds[selectedItemIndex]}`,
+  //       {
+  //         method: "DELETE",
+  //         headers: {
+  //           authorization: userData.token,
+  //         },
+  //       }
+  //     );
 
-      if (response.ok) {
-        toast.success("Deleted Successfully");
+  //     if (response.ok) {
+  //       toast.success("Deleted Successfully");
 
-        const updatedUsers = tableItems.filter(
-          (_, i) => i !== selectedItemIndex
-        );
-        setTableItems(updatedUsers);
-      } else {
-        toast.error("Failed to Delete");
-      }
-    } catch (error) {
-      console.error("Error deleting user:", error);
-      toast.error("An error occurred while deleting the user.");
-    }
-  };
+  //       const updatedUsers = tableItems.filter(
+  //         (_, i) => i !== selectedItemIndex
+  //       );
+  //       setTableItems(updatedUsers);
+  //     } else {
+  //       toast.error("Failed to Delete");
+  //     }
+  //   } catch (error) {
+  //     console.error("Error deleting user:", error);
+  //     toast.error("An error occurred while deleting the user.");
+  //   }
+  // };
 
   useEffect(() => {
-    fetchRoleResponse();
+    fetchRoleAndDomainResponse();
     fetchUserList();
-  }, [fetchRoleResponse, fetchUserList]);
+  }, [fetchRoleAndDomainResponse, fetchUserList]);
 
   return (
     <>
@@ -445,7 +482,7 @@ const CustomersDashboard = () => {
                       type="text"
                       placeholder="Search..."
                       value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
+                      onChange={handleSearchTermChange}
                       className="px-4 py-1 border focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                     <div className="bg-gray-200 text-gray-600 grid place-items-center px-2 border-gray-200 cursor-pointer">
@@ -460,9 +497,8 @@ const CustomersDashboard = () => {
                   </button>
                 </div>
                 <Table
-                  tableType="user"
-                  searchTerm={searchTerm}
                   headerItems={[
+                    "Status",
                     "User Name",
                     "Full Name",
                     "Role",
@@ -476,16 +512,16 @@ const CustomersDashboard = () => {
                   totalCount={totalCount}
                   onViewUser={handleViewUser}
                   onEditUser={handleEditUser}
-                  onDeleteUser={handleDeleteUser}
+                  // onDeleteUser={handleDeleteUser}
                   onPageIndexChange={handlePageIndexChange}
                   onPageSizeChange={handlePageSizeChange}
                 />
-                <ConfirmModal
+                {/* <ConfirmModal
                   isOpen={confirmModalOpen}
                   onRequestClose={handleConfirmCancel}
                   onConfirm={handleConfirm}
                   message="Are you sure you want to delete this item?"
-                />
+                /> */}
                 <Modal
                   width="w-[1100px]"
                   isOpen={isModalOpen}
@@ -641,9 +677,11 @@ const CustomersDashboard = () => {
                                 updateInputRow(index, "domain", e.target.value)
                               }
                             >
-                              <option value=".pbx1.cloudtalk.ca">
-                                .pbx1.cloudtalk.ca
-                              </option>
+                              {domains.map((item, index) => (
+                                <option key={index} value={item.id}>
+                                  {item.name}
+                                </option>
+                              ))}
                             </select>
                           </div>
                         </div>
@@ -655,6 +693,7 @@ const CustomersDashboard = () => {
                         onClick={() => {
                           setInputRows([
                             {
+                              status: true,
                               username: "",
                               firstName: "",
                               lastName: "",
@@ -813,17 +852,22 @@ const CustomersDashboard = () => {
                             <label className="block text-sm font-medium text-gray-700">
                               Domain
                             </label>
-                            <input
+                            <select
                               className="mt-1 p-2 border rounded-lg w-full"
                               value={editUser.domain}
                               onChange={(e) =>
                                 setEditUser({
                                   ...editUser,
-                                  domain: e.target
-                                    .value as ".pbx1.cloudtalk.ca",
+                                  domain: e.target.value,
                                 })
                               }
-                            />
+                            >
+                              {domains.map((item, index) => (
+                                <option key={index} value={item.id}>
+                                  {item.name}
+                                </option>
+                              ))}
+                            </select>
                           </div>
                         </div>
                       </div>
