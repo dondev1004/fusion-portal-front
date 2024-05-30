@@ -4,6 +4,7 @@ import { FcGoogle } from "react-icons/fc";
 import { Link } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { base_url } from "../../../config/setting";
 
 // Password strength and validation check function
 const evaluatePasswordStrength = (password: string) => {
@@ -45,7 +46,7 @@ const SignUp: React.FC = () => {
 
     try {
       const response = await fetch(
-        "http://192.168.103.172:3000/api/auth/admin/register",
+        `${base_url}/auth/admin/register`,
         {
           method: "POST",
           headers: {
