@@ -90,8 +90,8 @@ const CustomersDashboard = () => {
   const [userIds, setUserIds] = useState<Array<string>>([]);
   const [tableItems, setTableItems] = useState<Array<TableItemProps>>([]);
 
-  const onAddUser = (newUser: TableItemProps) => {
-    setTableItems((prevItems) => [...prevItems, newUser]);
+  const onAddUser = async () => {
+    await fetchUserList(currentPage, pageSize, searchTerm);
   };
 
   const handlePageIndexChange = async (index: number) => {
@@ -173,18 +173,6 @@ const CustomersDashboard = () => {
         newDomain = domains[0];
       }
 
-      const newUser: any = {
-        status: row.status,
-        username: row.username,
-        fullName: `${row.firstName} ${row.lastName}`,
-        role: newRole?.name || "",
-        domain: newDomain?.name || "",
-        api: "9d*******34",
-      };
-
-      console.log(row.role);
-      console.log(row.domain);
-
       try {
         const response = await fetch(`${base_url}/admin/user_create`, {
           method: "POST",
@@ -205,7 +193,7 @@ const CustomersDashboard = () => {
         });
 
         if (response.ok) {
-          onAddUser(newUser);
+          await onAddUser();
           setIsModalOpen(false);
           setInputRows([
             {
@@ -240,8 +228,6 @@ const CustomersDashboard = () => {
         });
         return;
       }
-
-      console.log(editUser.domain);
 
       try {
         const response = await fetch(
@@ -282,18 +268,7 @@ const CustomersDashboard = () => {
           if (domain.id === editUser.domain) newDomain = domain.name;
         });
 
-        const updatedUser: TableItemProps = {
-          status: editUser.status as boolean,
-          username: editUser.username,
-          fullName: `${editUser.firstName} ${editUser.lastName}`,
-          role: newRole,
-          domain: newDomain,
-          api: editUser.api as string,
-        };
-        const updatedUsers = tableItems.map((user, i) =>
-          selectedItemIndex === i ? updatedUser : user
-        );
-        setTableItems(updatedUsers);
+        await fetchUserList(currentPage, pageSize, searchTerm);
         setInputRows([
           {
             status: true,
