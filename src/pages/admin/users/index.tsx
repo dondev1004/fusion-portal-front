@@ -334,19 +334,24 @@ const CustomersDashboard = () => {
 
     const roleItems: Array<{ name: string; id: string }> = [];
     const domainItems: Array<{ name: string; id: string }> = [];
-    for (let i = 0; i < data.data.groups.length; i++) {
-      roleItems.push({
-        name: data.data.groups[i].group_name,
-        id: data.data.groups[i].group_uuid,
-      });
-    }
 
-    for (let i = 0; i < data.data.domains.length; i++) {
-      domainItems.push({
-        name: data.data.domains[i].domain_name,
-        id: data.data.domains[i].domain_uuid,
-      });
-    }
+    data?.data.groups.forEach(
+      (item: { group_uuid: string; group_name: string }) => {
+        roleItems.push({
+          name: item.group_name,
+          id: item.group_uuid,
+        });
+      }
+    );
+
+    data?.data.domains.forEach(
+      (item: { domain_name: string; domain_uuid: string }) => {
+        domainItems.push({
+          name: item.domain_name,
+          id: item.domain_uuid,
+        });
+      }
+    );
 
     setRoles(roleItems);
     setDomains(domainItems);
