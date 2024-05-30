@@ -163,6 +163,9 @@ const CustomersDashboard = () => {
         return;
       }
 
+      console.log(roles, "roles from add user");
+      console.log(domains, "domains from add user");
+
       let newRole = roles.find((item) => item.id === row.role);
       if (!newRole && roles.length) {
         newRole = roles[0];
@@ -331,6 +334,7 @@ const CustomersDashboard = () => {
       },
     });
     const data = await response.json();
+    console.log(data, "from fetch method");
 
     const roleItems: Array<{ name: string; id: string }> = [];
     const domainItems: Array<{ name: string; id: string }> = [];
