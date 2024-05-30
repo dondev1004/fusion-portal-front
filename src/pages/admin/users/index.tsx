@@ -182,6 +182,9 @@ const CustomersDashboard = () => {
         api: "9d*******34",
       };
 
+      console.log(row.role);
+      console.log(row.domain);
+
       try {
         const response = await fetch(`${base_url}/admin/user_create`, {
           method: "POST",
@@ -196,8 +199,8 @@ const CustomersDashboard = () => {
             lastName: row.lastName,
             email: row.email,
             password: row.password,
-            group: row.role,
-            domain: row.domain,
+            group: row.role !== "" ? row.role : roles[0].id,
+            domain: row.domain !== "" ? row.domain : domains[0].id,
           }),
         });
 
