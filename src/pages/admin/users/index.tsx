@@ -163,9 +163,6 @@ const CustomersDashboard = () => {
         return;
       }
 
-      console.log(roles, "roles from add user");
-      console.log(domains, "domains from add user");
-
       let newRole = roles.find((item) => item.id === row.role);
       if (!newRole && roles.length) {
         newRole = roles[0];
@@ -334,7 +331,6 @@ const CustomersDashboard = () => {
       },
     });
     const data = await response.json();
-    console.log(data, "from fetch method");
 
     const roleItems: Array<{ name: string; id: string }> = [];
     const domainItems: Array<{ name: string; id: string }> = [];
@@ -343,7 +339,9 @@ const CustomersDashboard = () => {
         name: data.data.groups[i].group_name,
         id: data.data.groups[i].group_uuid,
       });
+    }
 
+    for (let i = 0; i < data.data.domains.length; i++) {
       domainItems.push({
         name: data.data.domains[i].domain_name,
         id: data.data.domains[i].domain_uuid,
