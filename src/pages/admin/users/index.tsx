@@ -6,6 +6,8 @@ import Sidebar, {
 } from "../../../components/advanced/layouts/Sidebar";
 import Modal from "../../../components/base/Modal";
 import Table from "../../../components/base/Table";
+import Toggle from "../../../components/base/Toggle";
+
 import Footer from "../../../components/layouts/footer";
 import Header from "../../../components/layouts/header";
 
@@ -74,6 +76,8 @@ const CustomersDashboard = () => {
   const [pageSize, setPageSize] = useState(10);
   const [totalCount, setTotalCount] = useState(0);
 
+  const [userStatus, setUserStatus] = useState<boolean>(true);
+
   const sidebarMenus: Array<SidebarMenuItemProps> = [
     {
       icon: <FaUserGroup />,
@@ -89,6 +93,29 @@ const CustomersDashboard = () => {
   const [selectedItemIndex, setSelectedItemIndex] = useState(0);
   const [userIds, setUserIds] = useState<Array<string>>([]);
   const [tableItems, setTableItems] = useState<Array<TableItemProps>>([]);
+
+  const handleUserStatusChange = async (status: boolean) => {
+    try {
+      const response = await fetch(
+        `${base_url}/admin/user_set_status/${userIds[selectedItemIndex]}`,
+        {
+          method: "PUT",
+          headers: {
+            authorization: userData.token,
+          },
+        }
+      );
+
+      if (response.ok) {
+        setUserStatus(status);
+        await fetchUserList(currentPage, pageSize, searchTerm);
+      } else {
+        toast.warn(`Can not set this user as ${userStatus}`);
+      }
+    } catch (e) {
+      toast.error("User status fetch error");
+    }
+  };
 
   const onAddUser = async () => {
     await fetchUserList(currentPage, pageSize, searchTerm);
@@ -146,6 +173,12 @@ const CustomersDashboard = () => {
         role: data.data.user.group_uuids ?? "",
         domain: data.data.user.domain_uuid ?? "",
       });
+
+      const booleanMap: { [key: string]: boolean } = {
+        true: true,
+        false: false,
+      };
+      setUserStatus(booleanMap[data.data.user.user_enabled.toLowerCase()]);
 
       setSelectedItemIndex(index);
       setIsEditModalOpen(true);
@@ -258,16 +291,6 @@ const CustomersDashboard = () => {
           return;
         }
 
-        let newRole: string = "";
-        roles.map((role) => {
-          if (role.id === editUser.role) newRole = role.name;
-        });
-
-        let newDomain: string = "";
-        domains.map((domain) => {
-          if (domain.id === editUser.domain) newDomain = domain.name;
-        });
-
         await fetchUserList(currentPage, pageSize, searchTerm);
         setInputRows([
           {
@@ -350,7 +373,6 @@ const CustomersDashboard = () => {
         );
         if (response.ok) {
           const data = await response.json();
-          console.log(data);
           const userIdData = data.data.users.map((user: any) => user.user_uuid);
           const users: TableItemProps[] = data.data.users.map((user: any) => ({
             status: user.user_enabled,
@@ -856,19 +878,25 @@ const CustomersDashboard = () => {
                           </div>
                         </div>
                       </div>
-                      <div className="flex justify-end p-4 border-t border-gray-200">
-                        <button
-                          className="px-4 py-2 mr-2 bg-gray-300 rounded-lg"
-                          onClick={() => setIsEditModalOpen(false)}
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          className="px-6 py-2 bg-blue-600 text-white rounded-lg"
-                          onClick={handleUpdateUser}
-                        >
-                          Update
-                        </button>
+                      <div className="flex justify-between p-4 border-t border-gray-200">
+                        <Toggle
+                          status={userStatus}
+                          onChange={handleUserStatusChange}
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            className="px-4 py-2 mr-2 bg-gray-300 rounded-lg"
+                            onClick={() => setIsEditModalOpen(false)}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            className="px-6 py-2 bg-blue-600 text-white rounded-lg"
+                            onClick={handleUpdateUser}
+                          >
+                            Update
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </Modal>

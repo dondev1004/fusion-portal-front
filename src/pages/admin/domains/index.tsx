@@ -2,6 +2,8 @@ import { ChangeEvent, useCallback, useEffect, useState } from "react";
 import { ToastContainer, toast } from "react-toastify";
 import Modal from "../../../components/base/Modal";
 import Table from "../../../components/base/Table";
+import Toggle from "../../../components/base/Toggle";
+
 import Footer from "../../../components/layouts/footer";
 import Header from "../../../components/layouts/header";
 
@@ -12,9 +14,9 @@ import { useAppStore } from "../../../lib/zustand/store";
 import { AiOutlineSearch } from "react-icons/ai";
 import { BsPlusLg } from "react-icons/bs";
 interface TableItemProps {
+  status: boolean;
   domain_name: string;
   domain_description: string;
-  status: boolean;
 }
 
 const DomainsDashboard = () => {
@@ -24,9 +26,9 @@ const DomainsDashboard = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [inputRows, setInputRows] = useState<Array<TableItemProps>>([
     {
+      status: true,
       domain_name: "",
       domain_description: "",
-      status: true,
     },
   ]);
   const [editDomain, setEditDomain] = useState<TableItemProps | null>(null);
@@ -37,9 +39,34 @@ const DomainsDashboard = () => {
   const [pageSize, setPageSize] = useState(10);
   const [totalCount, setTotalCount] = useState(0);
 
+  const [domainStatus, setDomainStatus] = useState<boolean>(true);
+
   const [selectedItemIndex, setSelectedItemIndex] = useState(0);
   const [domainIds, setDomainIds] = useState<Array<string>>([]);
   const [tableItems, setTableItems] = useState<Array<TableItemProps>>([]);
+
+  const handleDomainStatusChange = async (status: boolean) => {
+    try {
+      const response = await fetch(
+        `${base_url}/admin/domain_set_status/${domainIds[selectedItemIndex]}`,
+        {
+          method: "PUT",
+          headers: {
+            authorization: userData.token,
+          },
+        }
+      );
+
+      if (response.ok) {
+        setDomainStatus(status);
+        await fetchDomainList(currentPage, pageSize, searchTerm);
+      } else {
+        toast.warn(`Can not set this user as ${domainStatus}`);
+      }
+    } catch (e) {
+      toast.error("User status fetch error");
+    }
+  };
 
   const onAddDomain = (newDomain: TableItemProps) => {
     setTableItems((prevItems) => [...prevItems, newDomain]);
@@ -81,6 +108,8 @@ const DomainsDashboard = () => {
         domain_description: data.data.domain_description ?? "",
       });
 
+      setDomainStatus(data.data.domain_enabled);
+
       setSelectedItemIndex(index);
       setIsEditModalOpen(true);
     } catch (e) {
@@ -91,9 +120,9 @@ const DomainsDashboard = () => {
   const handleAddDomain = async () => {
     for (const row of inputRows) {
       const newDomain: any = {
+        status: true,
         domain_name: row.domain_name,
         domain_description: row.domain_description,
-        status: true,
       };
 
       try {
@@ -111,9 +140,9 @@ const DomainsDashboard = () => {
           setIsModalOpen(false);
           setInputRows([
             {
+              status: true,
               domain_name: "",
               domain_description: "",
-              status: true,
             },
           ]);
           toast("The domain created successfully", { type: "success" });
@@ -152,9 +181,9 @@ const DomainsDashboard = () => {
         }
 
         const updatedDomain: TableItemProps = {
+          status: true,
           domain_name: editDomain.domain_name,
           domain_description: editDomain.domain_description,
-          status: true,
         };
         const updatedDomains = tableItems.map((domain, i) =>
           selectedItemIndex === i ? updatedDomain : domain
@@ -162,9 +191,9 @@ const DomainsDashboard = () => {
         setTableItems(updatedDomains);
         setInputRows([
           {
+            status: true,
             domain_name: "",
             domain_description: "",
-            status: true,
           },
         ]);
         toast.success("Successed Updated", { type: "success" });
@@ -207,9 +236,9 @@ const DomainsDashboard = () => {
           );
           const domains: TableItemProps[] = data.data.domains.map(
             (domain: any) => ({
+              status: domain.domain_enabled,
               domain_name: domain.domain_name,
               domain_description: domain.domain_description,
-              status: domain.domain_enabled,
             })
           );
           setDomainIds(userIdDomain);
@@ -265,7 +294,7 @@ const DomainsDashboard = () => {
                   </button>
                 </div>
                 <Table
-                  headerItems={["Domain Name", "Domain Description", "Status"]}
+                  headerItems={["Status", "Domain Name", "Domain Description"]}
                   tableItems={tableItems}
                   totalPages={totalPages}
                   currentPage={currentPage}
@@ -398,19 +427,25 @@ const DomainsDashboard = () => {
                             />
                           </div>
                         </div>
-                        <div className="flex justify-end p-4 border-t border-gray-200">
-                          <button
-                            className="px-4 py-2 mr-2 bg-gray-300 rounded-lg"
-                            onClick={() => setIsEditModalOpen(false)}
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            className="px-6 py-2 bg-blue-600 text-white rounded-lg"
-                            onClick={handleUpdateDomain}
-                          >
-                            Update
-                          </button>
+                        <div className="flex justify-between p-4 border-t border-gray-200">
+                          <Toggle
+                            status={domainStatus}
+                            onChange={handleDomainStatusChange}
+                          />
+                          <div className="flex gap-2">
+                            <button
+                              className="px-4 py-2 mr-2 bg-gray-300 rounded-lg"
+                              onClick={() => setIsEditModalOpen(false)}
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              className="px-6 py-2 bg-blue-600 text-white rounded-lg"
+                              onClick={handleUpdateDomain}
+                            >
+                              Update
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
