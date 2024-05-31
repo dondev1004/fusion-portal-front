@@ -180,8 +180,10 @@ const DomainsDashboard = () => {
           return;
         }
 
+        await fetchDomainList(currentPage, pageSize, searchTerm);
+
         const updatedDomain: TableItemProps = {
-          status: true,
+          status: domainStatus,
           domain_name: editDomain.domain_name,
           domain_description: editDomain.domain_description,
         };
