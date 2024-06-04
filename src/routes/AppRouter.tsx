@@ -13,6 +13,7 @@ import {
 } from "../pages/admin";
 import SignIn from "../pages/auth/signIn";
 import SignUp from "../pages/auth/signUp";
+import Verify from "../pages/auth/verify";
 import { CustomerDashboard } from "../pages/customer";
 
 import ProtectedRoute from "./ProtectedRoute";
@@ -26,6 +27,10 @@ const AppRouter: React.FC = () => {
     {
       path: "/auth/signup",
       element: <SignUp />,
+    },
+    {
+      path: "/auth/verify",
+      element: <Verify />,
     },
     // {
     //   path: "*",

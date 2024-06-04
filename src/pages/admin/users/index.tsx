@@ -78,6 +78,8 @@ const CustomersDashboard = () => {
 
   const [userStatus, setUserStatus] = useState<boolean>(true);
 
+  console.log();
+
   const sidebarMenus: Array<SidebarMenuItemProps> = [
     {
       icon: <FaUserGroup />,
@@ -97,7 +99,8 @@ const CustomersDashboard = () => {
   const handleUserStatusChange = async (status: boolean) => {
     try {
       const response = await fetch(
-        `${base_url}/admin/user_set_status/${userIds[selectedItemIndex]}`,
+        // @ts-ignore
+        `${import.meta.env.VITE_API_URL}/admin/user_set_status/${userIds[selectedItemIndex]}`,
         {
           method: "PUT",
           headers: {
@@ -152,7 +155,8 @@ const CustomersDashboard = () => {
   const handleEditUser = async (index: number) => {
     try {
       const response = await fetch(
-        `${base_url}/admin/user_update/${userIds[index]}`,
+        // @ts-ignore
+        `${import.meta.env.VITE_API_URL}/admin/user_update/${userIds[index]}`,
         {
           headers: {
             authorization: userData.token,
@@ -207,7 +211,8 @@ const CustomersDashboard = () => {
       }
 
       try {
-        const response = await fetch(`${base_url}/admin/user_create`, {
+        // @ts-ignore
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/admin/user_create`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -264,7 +269,8 @@ const CustomersDashboard = () => {
 
       try {
         const response = await fetch(
-          `${base_url}/admin/user_update/${userIds[selectedItemIndex]}`,
+          // @ts-ignore
+          `${import.meta.env.VITE_API_URL}/admin/user_update/${userIds[selectedItemIndex]}`,
           {
             method: "PUT",
             headers: {
@@ -326,7 +332,8 @@ const CustomersDashboard = () => {
   };
 
   const fetchRoleAndDomainResponse = useCallback(async () => {
-    const response = await fetch(`${base_url}/admin/user_create`, {
+    // @ts-ignore
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/admin/user_create`, {
       headers: {
         authorization: userData.token,
       },
@@ -362,7 +369,8 @@ const CustomersDashboard = () => {
     async (page?: number, count?: number, search?: string) => {
       try {
         const response = await fetch(
-          `${base_url}/admin/user_list?search=${search ?? searchTerm}&page=${
+          // @ts-ignore
+          `${import.meta.env.VITE_API_URL}/admin/user_list?search=${search ?? searchTerm}&page=${
             page ?? currentPage
           }&pageSize=${count ?? pageSize}`,
           {
@@ -438,7 +446,7 @@ const CustomersDashboard = () => {
   //   setConfirmModalOpen(false);
   //   try {
   //     const response = await fetch(
-  //       `${base_url}/admin/user_delete/${userIds[selectedItemIndex]}`,
+  //       `${import.meta.env.VITE_API_URL}/admin/user_delete/${userIds[selectedItemIndex]}`,
   //       {
   //         method: "DELETE",
   //         headers: {

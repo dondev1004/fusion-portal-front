@@ -48,7 +48,8 @@ const DomainsDashboard = () => {
   const handleDomainStatusChange = async (status: boolean) => {
     try {
       const response = await fetch(
-        `${base_url}/admin/domain_set_status/${domainIds[selectedItemIndex]}`,
+        // @ts-ignore
+        `${import.meta.env.VITE_API_URL}/admin/domain_set_status/${domainIds[selectedItemIndex]}`,
         {
           method: "PUT",
           headers: {
@@ -91,7 +92,8 @@ const DomainsDashboard = () => {
   const handleEditDomain = async (index: number) => {
     try {
       const response = await fetch(
-        `${base_url}/admin/domain_update/${domainIds[index]}`,
+        // @ts-ignore
+        `${import.meta.env.VITE_API_URL}/admin/domain_update/${domainIds[index]}`,
         {
           headers: {
             authorization: userData.token,
@@ -126,7 +128,8 @@ const DomainsDashboard = () => {
       };
 
       try {
-        const response = await fetch(`${base_url}/admin/domain_create`, {
+        // @ts-ignore
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/admin/domain_create`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -161,7 +164,8 @@ const DomainsDashboard = () => {
     if (editDomain) {
       try {
         const response = await fetch(
-          `${base_url}/admin/domain_update/${domainIds[selectedItemIndex]}`,
+          // @ts-ignore
+          `${import.meta.env.VITE_API_URL}/admin/domain_update/${domainIds[selectedItemIndex]}`,
           {
             method: "PUT",
             headers: {
@@ -221,7 +225,8 @@ const DomainsDashboard = () => {
     async (page?: number, count?: number, search?: string) => {
       try {
         const response = await fetch(
-          `${base_url}/admin/domain_list?search=${search ?? searchTerm}&page=${
+          // @ts-ignore
+          `${import.meta.env.VITE_API_URL}/admin/domain_list?search=${search ?? searchTerm}&page=${
             page ?? currentPage
           }&pageSize=${count ?? pageSize}`,
           {

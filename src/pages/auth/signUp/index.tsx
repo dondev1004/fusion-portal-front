@@ -46,7 +46,8 @@ const SignUp: React.FC = () => {
 
     try {
       const response = await fetch(
-        `${base_url}/auth/admin/register`,
+        // @ts-ignore
+        `${import.meta.env.VITE_API_URL}/auth/admin/register`,
         {
           method: "POST",
           headers: {
@@ -63,12 +64,14 @@ const SignUp: React.FC = () => {
       );
 
       const data = await response.json();
+      console.log(data);
+      
 
       if (!response.ok) {
         throw new Error(data.message || "Network response was not ok");
       }
 
-      toast.success("Signup successful! Redirecting...");
+      toast.success(data.msg);
       setTimeout(() => {
         // Redirect to the signin page after 2 seconds
         window.location.href = "/auth/signin";

@@ -29,7 +29,8 @@ const SignIn: React.FC = () => {
     const bodyData = Object.fromEntries(formData.entries());
 
     try {
-      const response = await fetch(`${base_url}/auth/admin/login`, {
+      // @ts-ignore
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/admin/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
