@@ -42,7 +42,6 @@ const SignIn: React.FC = () => {
       });
 
       const data = await response.json();
-      console.log(data.data);
 
       if (!response.ok) {
         throw new Error(data.message || "Network response was not ok");
