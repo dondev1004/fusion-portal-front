@@ -13,6 +13,8 @@ import { useAppStore } from "../../../lib/zustand/store";
 
 import { AiOutlineSearch } from "react-icons/ai";
 import { BsPlusLg } from "react-icons/bs";
+import { MdOutlineCloudSync } from "react-icons/md";
+
 interface TableItemProps {
   status: boolean;
   domain_name: string;
@@ -148,6 +150,9 @@ const DomainsDashboard = () => {
               domain_description: "",
             },
           ]);
+          
+          await fetchDomainList(currentPage, pageSize, searchTerm);
+
           toast("The domain created successfully", { type: "success" });
         } else {
           console.log(response.status, response.ok);
@@ -159,6 +164,31 @@ const DomainsDashboard = () => {
       }
     }
   };
+
+  const handleSyncGDMS = async () => {
+    try {
+      // @ts-ignore
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/admin/sync_domain_to_site`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          authorization: userData.token,
+        },
+      });
+
+      if (response.ok) {
+        await fetchDomainList(currentPage, pageSize, searchTerm);
+        toast("The domain was synced with GDMS successfully", { type: "success" });
+      } else {
+        console.log(response.status, response.ok);
+        const errorData = await response.json();
+        toast(errorData.msg, { type: "warning" });
+      }
+    } catch (error) {
+      console.error("Error creating domain:", error);
+    }
+  };
+
 
   const handleUpdateDomain = async () => {
     if (editDomain) {
@@ -293,12 +323,20 @@ const DomainsDashboard = () => {
                       <AiOutlineSearch className="" />
                     </div>
                   </div>
-                  <button
-                    onClick={() => setIsModalOpen(true)}
-                    className="px-2 py-1 border border-gray-200 flex items-center bg-gray-200 text-blue-400"
-                  >
-                    <BsPlusLg className="mr-2" /> Add Domain
-                  </button>
+                  <div className=" flex gap-2">
+                    <button
+                      onClick={() => handleSyncGDMS()}
+                      className="px-2 py-1 border border-gray-200 flex items-center bg-gray-200 text-blue-400"
+                    >
+                      <MdOutlineCloudSync className="mr-2" /> Sync GDMS
+                    </button>
+                    <button
+                      onClick={() => setIsModalOpen(true)}
+                      className="px-2 py-1 border border-gray-200 flex items-center bg-gray-200 text-blue-400"
+                    >
+                      <BsPlusLg className="mr-2" /> Add Domain
+                    </button>
+                  </div>
                 </div>
                 <Table
                   headerItems={["Status", "Domain Name", "Domain Description"]}
