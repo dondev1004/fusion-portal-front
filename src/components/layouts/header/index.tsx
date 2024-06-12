@@ -13,8 +13,7 @@ const Header = () => {
     { name: "Home", to: "/admin" },
     { name: "Users", to: "/admin/users/default" },
     { name: "Domains", to: "/admin/domains/default" },
-    // { name: "Extensions", to: "/admin/extensions/default" },
-    { name: "Extensions", to: "/#" },
+    { name: "Extensions", to: "/admin/extensions/default" },
     // { name: "Settings", to: "/customer" },
     { name: "Settings", to: "/#" },
   ];

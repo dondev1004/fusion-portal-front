@@ -11,8 +11,6 @@ import Toggle from "../../../components/base/Toggle";
 import Footer from "../../../components/layouts/footer";
 import Header from "../../../components/layouts/header";
 
-import { base_url } from "../../../config/setting";
-
 import { useAppStore } from "../../../lib/zustand/store";
 
 import { AiOutlineSearch } from "react-icons/ai";
@@ -47,9 +45,7 @@ const CustomersDashboard = () => {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [roles, setRoles] = useState<Array<{ name: string; id: string }>>([]);
-  const [domains, setDomains] = useState<Array<{ name: string; id: string }>>(
-    []
-  );
+  const [domains, setDomains] = useState<Array<{ name: string; id: string }>>([]);
   // const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
@@ -77,8 +73,6 @@ const CustomersDashboard = () => {
   const [totalCount, setTotalCount] = useState(0);
 
   const [userStatus, setUserStatus] = useState<boolean>(true);
-
-  console.log();
 
   const sidebarMenus: Array<SidebarMenuItemProps> = [
     {
@@ -407,7 +401,8 @@ const CustomersDashboard = () => {
   const handleViewUser = async (index: number) => {
     try {
       const response = await fetch(
-        `${base_url}/admin/user_read/${userIds[index]}`,
+          // @ts-ignore
+        `${import.meta.env.VITE_API_URL}/admin/user_read/${userIds[index]}`,
         {
           headers: {
             authorization: userData.token,
